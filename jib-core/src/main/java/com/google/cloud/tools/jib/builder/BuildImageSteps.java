@@ -21,7 +21,6 @@ import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.cache.Cache;
 import com.google.cloud.tools.jib.cache.CachedLayer;
 import com.google.cloud.tools.jib.http.Authorization;
-import com.google.cloud.tools.jib.image.Image;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -58,24 +57,32 @@ public class BuildImageSteps {
         try (Cache cache = Cache.init(cacheDirectory)) {
           timer2.lap("Setting up image pull authentication");
 
-          // Authenticates base image pull.
-          AuthenticatePullStep authenticatePullStep = new AuthenticatePullStep(listeningExecutorService, buildConfiguration);
-          timer2.lap("Setting up base image pull");
+          AsyncStep.Factory asyncStepFactory =
+              new AsyncStep.Factory(listeningExecutorService, buildConfiguration);
 
+          // Authenticates base image pull.
+          AuthenticatePullStep authenticatePullStep =
+              asyncStepFactory.make(AuthenticatePullStep.class);
+
+          timer2.lap("Setting up base image pull");
           // Pulls the base image.
-          PullBaseImageStep pullBaseImageStep = new PullBaseImageStep(listeningExecutorService, buildConfiguration);
-          
+          PullBaseImageStep pullBaseImageStep =
+              asyncStepFactory.make(
+                  PullBaseImageStep.class,
+                  PullBaseImageStep.Dependencies.AUTHENTICATE_PULL,
+                  authenticatePullStep);
+
           timer2.lap("Setting up base image layer pull");
           // Pulls and caches the base image layers.
           ListenableFuture<List<ListenableFuture<CachedLayer>>> pullBaseImageLayerFuturesFuture =
-              Futures.whenAllSucceed(pullBaseImageFuture)
+              Futures.whenAllSucceed(pullBaseImageStep.getFuture())
                   .call(
                       new PullAndCacheBaseImageLayersStep(
                           buildConfiguration,
                           cache,
                           listeningExecutorService,
-                          authenticatePullFuture,
-                          pullBaseImageFuture),
+                          authenticatePullStep.getFuture(),
+                          pullBaseImageStep.getFuture()),
                       listeningExecutorService);
 
           timer2.lap("Setting up image push authentication");

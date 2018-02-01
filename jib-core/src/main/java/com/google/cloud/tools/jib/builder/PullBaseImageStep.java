@@ -17,7 +17,6 @@
 package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.Timer;
-import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.image.DuplicateLayerException;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.LayerCountMismatchException;
@@ -32,51 +31,51 @@ import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 /** Pulls the base image manifest. */
-class PullBaseImageStep implements Callable<Image> {
+class PullBaseImageStep extends AsyncStep<Image> {
 
-  private enum Dependencies {
-    AUTHENTICATE_PULL
+  enum Dependencies implements DependencyEnum {
+    AUTHENTICATE_PULL(AuthenticatePullStep.class);
+
+    private final Class<?> dependencyClass;
+
+    Dependencies(Class<?> dependencyClass) {
+      this.dependencyClass = dependencyClass;
+    }
+
+    @Override
+    public Class<?> getDependencyClass() {
+      return dependencyClass;
+    }
   }
 
   private static final String DESCRIPTION = "Pulling base image manifest";
 
   private final BuildConfiguration buildConfiguration;
-  private final Future<Authorization> pullAuthorizationFuture;
 
-  private final NonBlockingListenableFuture<Image> future;
-
-  PullBaseImageStep(ListeningExecutorService listeningExecutorService,
-      BuildConfiguration buildConfiguration, Future<Authorization> pullAuthorizationFuture) {
+  PullBaseImageStep(BuildConfiguration buildConfiguration) {
     this.buildConfiguration = buildConfiguration;
-    this.pullAuthorizationFuture = pullAuthorizationFuture;
-
-    future =
-        new NonBlockingListenableFuture<>(
-            Futures.whenAllSucceed(authenticatePullStep.getFuture())
-                .call(
-                    new PullBaseImageStep(buildConfiguration, authenticatePullStep.getFuture()),
-                    listeningExecutorService));
   }
 
-  /** Depends on {@code pullAuthorizationFuture}. */
+  /** Depends on {@code authenticatePullStep}. */
   @Override
   public Image call()
       throws IOException, RegistryException, LayerPropertyNotFoundException,
           DuplicateLayerException, LayerCountMismatchException, ExecutionException,
           InterruptedException {
+    AuthenticatePullStep authenticatePullStep =
+        (AuthenticatePullStep) dependencyMap.get(Dependencies.AUTHENTICATE_PULL);
+
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), DESCRIPTION)) {
       RegistryClient registryClient =
           new RegistryClient(
-              NonBlockingFutures.get(pullAuthorizationFuture),
+              // TODO: Simplify with a method on authenticatePullStep.
+              NonBlockingFutures.get(authenticatePullStep.getFuture()),
               buildConfiguration.getBaseImageServerUrl(),
               buildConfiguration.getBaseImageName());
 
@@ -109,18 +108,19 @@ class PullBaseImageStep implements Callable<Image> {
     }
   }
 
-  /**
-   * Must be called after {@link #submitTo}.
-   */
-  NonBlockingListenableFuture<Authorization> getFuture() {
-    if (future == null) {
-      throw new IllegalStateException("Cannot get future before submitting to an executor");
-    }
-    return future;
-  }
-
+  @Override
   /** Submit the step to the {@code listeningExecutorService} to run when ready. */
   void submitTo(ListeningExecutorService listeningExecutorService) {
-    future = new NonBlockingListenableFuture<>(listeningExecutorService.submit(this));
+    // Checks if all dependencies are set.
+    for (Dependencies dependency : Dependencies.values()) {
+      if (!dependencyMap.containsKey(dependency)) {
+        throw new IllegalStateException(
+            "Dependency " + dependency.getDependencyClass() + " not set for " + getClass());
+      }
+    }
+
+    future =
+        Futures.whenAllSucceed(dependencyMap.get(Dependencies.AUTHENTICATE_PULL).getFuture())
+            .call(this, listeningExecutorService);
   }
 }

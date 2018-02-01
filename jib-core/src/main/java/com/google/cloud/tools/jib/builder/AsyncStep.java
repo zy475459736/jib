@@ -16,51 +16,82 @@
 
 package com.google.cloud.tools.jib.builder;
 
-import com.google.cloud.tools.jib.http.Authorization;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-
-import java.util.EnumMap;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public abstract class AsyncStep<T> implements Callable<T> {
+abstract class AsyncStep<T> implements Callable<T> {
 
   interface DependencyEnum {
 
-    Class<?> getResultClass();
+    Class<?> getDependencyClass();
   }
 
-  static <U extends AsyncStep<?>> U init(Class<U> asyncStepClass, Object... dependencies) throws IllegalAccessException, InstantiationException {
-    U asyncStep = asyncStepClass.newInstance();
+  static class Factory {
 
-    DependencyEnum currentEnum = null;
-    for (Object dependency : dependencies) {
-      if (currentEnum == null) {
-        if (!(dependency instanceof DependencyEnum)) {
-          throw new IllegalArgumentException("Dependencies should alternate between Enum and AsyncStep");
-        }
-        currentEnum = (DependencyEnum)dependency;
+    private final ListeningExecutorService listeningExecutorService;
+    private final BuildConfiguration buildConfiguration;
 
-      } else {
-        asyncStep.setDependency(currentEnum, (AsyncStep<?>) dependency);
-      }
+    Factory(
+        ListeningExecutorService listeningExecutorService, BuildConfiguration buildConfiguration) {
+      this.listeningExecutorService = listeningExecutorService;
+      this.buildConfiguration = buildConfiguration;
     }
 
-    return asyncStep;
+    <U extends AsyncStep<?>> U make(Class<U> asyncStepClass, Object... dependencies) {
+      try {
+        Constructor<U> constructor =
+            asyncStepClass.getDeclaredConstructor(BuildConfiguration.class);
+        U asyncStep = constructor.newInstance(buildConfiguration);
+
+        // Adds all the dependencies.
+        DependencyEnum currentEnum = null;
+        for (Object dependency : dependencies) {
+          if (currentEnum == null) {
+            if (!(dependency instanceof DependencyEnum)) {
+              throw new IllegalArgumentException(
+                  "Dependencies should alternate between Enum and AsyncStep");
+            }
+            currentEnum = (DependencyEnum) dependency;
+
+          } else {
+            asyncStep.setDependency(currentEnum, (AsyncStep<?>) dependency);
+          }
+        }
+
+        // Submits to the executor.
+        asyncStep.submitTo(listeningExecutorService);
+
+        return asyncStep;
+
+      } catch (NoSuchMethodException
+          | InstantiationException
+          | IllegalAccessException
+          | InvocationTargetException ex) {
+        throw new IllegalStateException("Reflection calls should not fail", ex);
+      }
+    }
   }
 
-  private Map<DependencyEnum, AsyncStep<?>> dependencyMap = new HashMap<>();
-  private NonBlockingListenableFuture<T> future;
+  Map<DependencyEnum, AsyncStep<?>> dependencyMap = new HashMap<>();
+  ListenableFuture<T> future;
 
   <U extends AsyncStep<?>> void setDependency(DependencyEnum dependencyEnum, U dependency) {
+    Class<?> dependencyClass = dependencyEnum.getDependencyClass();
+    // Checks if the dependency is of the right class.
+    if (dependency.getClass() != dependencyClass) {
+      throw new IllegalArgumentException("Dependency class mismatch");
+    }
+
     dependencyMap.put(dependencyEnum, dependency);
   }
 
-  /**
-   * Must be called after {@link #submitTo}.
-   */
-  NonBlockingListenableFuture<T> getFuture() {
+  /** Must be called after {@link #submitTo}. */
+  ListenableFuture<T> getFuture() {
     if (future == null) {
       throw new IllegalStateException("Cannot get future before submitting to an executor");
     }
@@ -69,6 +100,6 @@ public abstract class AsyncStep<T> implements Callable<T> {
 
   /** Submit the step to the {@code listeningExecutorService} to run when ready. */
   void submitTo(ListeningExecutorService listeningExecutorService) {
-    future = new NonBlockingListenableFuture<>(listeningExecutorService.submit(this));
+    future = listeningExecutorService.submit(this);
   }
 }

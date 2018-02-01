@@ -60,10 +60,14 @@ public class BuildImageStepsIntegrationTest {
 
     long lastTime = System.nanoTime();
     buildImageSteps.runAsync();
-    logger.info("Initial build time: " + ((System.nanoTime() - lastTime) / 1_000_000));
+    long firstBuildTime = System.nanoTime() - lastTime;
+    logger.info("Initial build time: " + firstBuildTime / 1_000_000);
     lastTime = System.nanoTime();
     buildImageSteps.runAsync();
-    logger.info("Secondary build time: " + ((System.nanoTime() - lastTime) / 1_000_000));
+    long secondBuildTime = System.nanoTime() - lastTime;
+    logger.info("Secondary build time: " + secondBuildTime / 1_000_000);
+
+    Assert.assertTrue(secondBuildTime < firstBuildTime);
 
     // TODO: Put this in a utility function.
     Runtime.getRuntime().exec("docker pull localhost:5000/testimage:testtag").waitFor();

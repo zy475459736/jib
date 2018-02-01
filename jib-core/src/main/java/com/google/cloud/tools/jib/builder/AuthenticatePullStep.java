@@ -21,11 +21,7 @@ import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.registry.RegistryAuthenticationFailedException;
 import com.google.cloud.tools.jib.registry.RegistryAuthenticators;
 import com.google.cloud.tools.jib.registry.RegistryException;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-
 import java.io.IOException;
-import java.util.concurrent.Callable;
 
 /** Retrieves credentials to push from the base image registry. */
 class AuthenticatePullStep extends AsyncStep<Authorization> {
