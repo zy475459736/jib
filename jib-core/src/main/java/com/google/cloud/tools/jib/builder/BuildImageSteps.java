@@ -57,18 +57,15 @@ public class BuildImageSteps {
 
         try (Cache cache = Cache.init(cacheDirectory)) {
           timer2.lap("Setting up image pull authentication");
+
           // Authenticates base image pull.
-          NonBlockingListenableFuture<Authorization> authenticatePullFuture =
-              new NonBlockingListenableFuture<>(
-                  listeningExecutorService.submit(new AuthenticatePullStep(buildConfiguration)));
+          AuthenticatePullStep authenticatePullStep = new AuthenticatePullStep(listeningExecutorService, buildConfiguration);
+
           timer2.lap("Setting up base image pull");
+
           // Pulls the base image.
-          NonBlockingListenableFuture<Image> pullBaseImageFuture =
-              new NonBlockingListenableFuture<>(
-                  Futures.whenAllSucceed(authenticatePullFuture)
-                      .call(
-                          new PullBaseImageStep(buildConfiguration, authenticatePullFuture),
-                          listeningExecutorService));
+          PullBaseImageStep pullBaseImageStep = new PullBaseImageStep(listeningExecutorService, buildConfiguration);
+
           timer2.lap("Setting up base image layer pull");
           // Pulls and caches the base image layers.
           NonBlockingListenableFuture<List<NonBlockingListenableFuture<CachedLayer>>>
@@ -80,7 +77,7 @@ public class BuildImageSteps {
                                   buildConfiguration,
                                   cache,
                                   listeningExecutorService,
-                                  authenticatePullFuture,
+                                  authenticatePullStep.getFuture(),
                                   pullBaseImageFuture),
                               listeningExecutorService));
 

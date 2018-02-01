@@ -30,6 +30,9 @@ import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,15 +43,28 @@ import java.util.concurrent.Future;
 /** Pulls the base image manifest. */
 class PullBaseImageStep implements Callable<Image> {
 
+  private enum Dependencies {
+    AUTHENTICATE_PULL
+  }
+
   private static final String DESCRIPTION = "Pulling base image manifest";
 
   private final BuildConfiguration buildConfiguration;
   private final Future<Authorization> pullAuthorizationFuture;
 
-  PullBaseImageStep(
+  private final NonBlockingListenableFuture<Image> future;
+
+  PullBaseImageStep(ListeningExecutorService listeningExecutorService,
       BuildConfiguration buildConfiguration, Future<Authorization> pullAuthorizationFuture) {
     this.buildConfiguration = buildConfiguration;
     this.pullAuthorizationFuture = pullAuthorizationFuture;
+
+    future =
+        new NonBlockingListenableFuture<>(
+            Futures.whenAllSucceed(authenticatePullStep.getFuture())
+                .call(
+                    new PullBaseImageStep(buildConfiguration, authenticatePullStep.getFuture()),
+                    listeningExecutorService));
   }
 
   /** Depends on {@code pullAuthorizationFuture}. */
@@ -91,5 +107,20 @@ class PullBaseImageStep implements Callable<Image> {
 
       throw new IllegalStateException("Unknown manifest schema version");
     }
+  }
+
+  /**
+   * Must be called after {@link #submitTo}.
+   */
+  NonBlockingListenableFuture<Authorization> getFuture() {
+    if (future == null) {
+      throw new IllegalStateException("Cannot get future before submitting to an executor");
+    }
+    return future;
+  }
+
+  /** Submit the step to the {@code listeningExecutorService} to run when ready. */
+  void submitTo(ListeningExecutorService listeningExecutorService) {
+    future = new NonBlockingListenableFuture<>(listeningExecutorService.submit(this));
   }
 }
