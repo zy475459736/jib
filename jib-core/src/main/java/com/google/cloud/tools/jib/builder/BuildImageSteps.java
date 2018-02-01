@@ -66,11 +66,16 @@ public class BuildImageSteps {
 
           timer2.lap("Setting up base image pull");
           // Pulls the base image.
-          PullBaseImageStep pullBaseImageStep =
-              asyncStepFactory.make(
-                  PullBaseImageStep.class,
-                  PullBaseImageStep.Dependencies.AUTHENTICATE_PULL,
-                  authenticatePullStep);
+          PullBaseImageStep pullBaseImageStep
+              = new PullBaseImageStep(buildConfiguration);
+          pullBaseImageStep.setDependency(AuthenticatePullStep.class, authenticatePullStep);
+          pullBaseImageStep.submitTo(listeningExecutorService);
+
+          //          PullBaseImageStep pullBaseImageStep =
+          //              asyncStepFactory.make(
+          //                  PullBaseImageStep.class,
+          //                  PullBaseImageStep.Dependencies.AUTHENTICATE_PULL,
+          //                  authenticatePullStep);
 
           timer2.lap("Setting up base image layer pull");
           // Pulls and caches the base image layers.

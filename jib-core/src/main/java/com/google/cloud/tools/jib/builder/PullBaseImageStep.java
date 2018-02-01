@@ -29,30 +29,23 @@ import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /** Pulls the base image manifest. */
 class PullBaseImageStep extends AsyncStep<Image> {
 
-  enum Dependencies implements DependencyEnum {
-    AUTHENTICATE_PULL(AuthenticatePullStep.class);
+  static final ImmutableSet<Class<? extends AsyncStep<?>>> dependencies =
+      ImmutableSet.of(AuthenticatePullStep.class);
 
-    private final Class<?> dependencyClass;
-
-    Dependencies(Class<?> dependencyClass) {
-      this.dependencyClass = dependencyClass;
-    }
-
-    @Override
-    public Class<?> getDependencyClass() {
-      return dependencyClass;
-    }
-  }
+  private final Map<Class<? extends AsyncStep<?>>, AsyncStep<?>> dependencyMap = new HashMap<>();
 
   private static final String DESCRIPTION = "Pulling base image manifest";
 
@@ -68,8 +61,7 @@ class PullBaseImageStep extends AsyncStep<Image> {
       throws IOException, RegistryException, LayerPropertyNotFoundException,
           DuplicateLayerException, LayerCountMismatchException, ExecutionException,
           InterruptedException {
-    AuthenticatePullStep authenticatePullStep =
-        (AuthenticatePullStep) dependencyMap.get(Dependencies.AUTHENTICATE_PULL);
+    AuthenticatePullStep authenticatePullStep = getDependency(AuthenticatePullStep.class);
 
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), DESCRIPTION)) {
       RegistryClient registryClient =
@@ -108,19 +100,34 @@ class PullBaseImageStep extends AsyncStep<Image> {
     }
   }
 
+  <U extends AsyncStep<?>> U getDependency(Class<U> dependencyClass) {
+    if (!dependencyClass.isInstance(dependencyMap.get(dependencyClass))) {
+      throw new IllegalStateException("Dependency class mismatch");
+    }
+    return (U) dependencyMap.get(dependencyClass);
+  }
+
+  <U extends AsyncStep<?>> void setDependency(Class<U> dependencyClass, U dependency) {
+    // Checks if the dependency is of the right class.
+    if (!dependencies.contains(dependencyClass)) {
+      throw new IllegalArgumentException("Not a valid dependency for " + getClass());
+    }
+
+    dependencyMap.put(dependencyClass, dependency);
+  }
+
   @Override
   /** Submit the step to the {@code listeningExecutorService} to run when ready. */
   void submitTo(ListeningExecutorService listeningExecutorService) {
     // Checks if all dependencies are set.
-    for (Dependencies dependency : Dependencies.values()) {
+    for (Class<? extends AsyncStep<?>> dependency : dependencies) {
       if (!dependencyMap.containsKey(dependency)) {
-        throw new IllegalStateException(
-            "Dependency " + dependency.getDependencyClass() + " not set for " + getClass());
+        throw new IllegalStateException("Dependency " + dependency + " not set for " + getClass());
       }
     }
 
     future =
-        Futures.whenAllSucceed(dependencyMap.get(Dependencies.AUTHENTICATE_PULL).getFuture())
+        Futures.whenAllSucceed(getDependency(AuthenticatePullStep.class).getFuture())
             .call(this, listeningExecutorService);
   }
 }
