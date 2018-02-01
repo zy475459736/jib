@@ -76,7 +76,7 @@ class PullBaseImageStep implements Callable<Image> {
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), DESCRIPTION)) {
       RegistryClient registryClient =
           new RegistryClient(
-              pullAuthorizationFuture.get(),
+              NonBlockingFutures.get(pullAuthorizationFuture),
               buildConfiguration.getBaseImageServerUrl(),
               buildConfiguration.getBaseImageName());
 
