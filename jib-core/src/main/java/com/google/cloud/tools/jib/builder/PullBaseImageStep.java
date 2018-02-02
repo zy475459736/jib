@@ -49,6 +49,8 @@ class PullBaseImageStep extends AsyncStep<Image> {
 
   private static final String DESCRIPTION = "Pulling base image manifest";
 
+  private static final String DESCRIPTION = "Pulling base image manifest";
+
   private final BuildConfiguration buildConfiguration;
 
   PullBaseImageStep(BuildConfiguration buildConfiguration) {

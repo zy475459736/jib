@@ -28,6 +28,8 @@ class AuthenticatePullStep extends AsyncStep<Authorization> {
 
   private static final String DESCRIPTION = "Authenticating with base image registry";
 
+  private static final String DESCRIPTION = "Authenticating with base image registry";
+
   private final BuildConfiguration buildConfiguration;
 
   AuthenticatePullStep(BuildConfiguration buildConfiguration) {
