@@ -276,7 +276,13 @@ When running the built container, set the environment variable `JVM_FLAGS` to th
 *For example, with Docker:*
 
 ```shell
-docker run -e JVM_FLAGS="-Xms512m -Xmx1g" <image>
+docker run -e JVM_FLAGS="-Xms512m -Xmx1g" <IMAGE>
+```
+
+*For example, with Kubernetes:*
+
+```shell
+kubectl run <NAME> --image=<IMAGE> --env="JVM_FLAGS='-Xms512m -Xmx1g'"
 ```
 
 ### Where is the application in the container filesystem?
