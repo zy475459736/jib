@@ -255,6 +255,30 @@ See [`docker run --entrypoint` reference](https://docs.docker.com/engine/referen
 
 See [Define a Command and Arguments for a Container](https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/) for running the image in a [Kubernetes](https://kubernetes.io/) Pod.
 
+### I want to use different JVM flags when I run the container.
+
+Configure the plugin with an environment variable `JVM_FLAGS`:
+
+*Example configuration:*
+
+```xml
+<configuration>
+  ...
+  <jvmFlags>
+    <jvmFlag>$JVM_FLAGS</jvmFlag>
+  </jvmFlags>
+  ...
+</configuration>
+```
+
+When running the built container, set the environment variable `JVM_FLAGS` to the JVM flags you wish to use.
+
+*For example, with Docker:*
+
+```shell
+docker run -e JVM_FLAGS="-Xms512m -Xmx1g" <image>
+```
+
 ### Where is the application in the container filesystem?
 
 Jib packages your Java application into the following paths on the image:
