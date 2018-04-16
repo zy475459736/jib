@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 /** Attempts to retrieve registry credentials. */
-class RetrieveRegistryCredentialsStep implements Callable<Authorization> {
+public class RetrieveRegistryCredentialsStep implements Callable<Authorization> {
 
   private static final String DESCRIPTION = "Retrieving registry credentials for %s";
 
@@ -45,7 +45,7 @@ class RetrieveRegistryCredentialsStep implements Callable<Authorization> {
   private final DockerCredentialHelperFactory dockerCredentialHelperFactory;
   private final DockerConfigCredentialRetriever dockerConfigCredentialRetriever;
 
-  RetrieveRegistryCredentialsStep(BuildConfiguration buildConfiguration, String registry) {
+  public RetrieveRegistryCredentialsStep(BuildConfiguration buildConfiguration, String registry) {
     this(
         buildConfiguration,
         registry,

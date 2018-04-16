@@ -143,7 +143,7 @@ public class BuildImageMojo extends AbstractMojo {
     Map<String, Authorization> registryCredentials = new HashMap<>(2);
     // Retrieves credentials for the base image registry.
     Authorization baseImageRegistryCredentials =
-        getRegistryCredentialsFromSettings(baseImage.getRegistry());
+            getRegistryCredentialsFromSettings(baseImage.getRegistry());
     if (baseImageRegistryCredentials != null) {
       registryCredentials.put(baseImage.getRegistry(), baseImageRegistryCredentials);
     }
@@ -153,7 +153,7 @@ public class BuildImageMojo extends AbstractMojo {
       registryCredentials.put(registry, targetRegistryCredentials);
     }
     RegistryCredentials mavenSettingsCredentials =
-        RegistryCredentials.from("Maven settings", registryCredentials);
+            RegistryCredentials.from("Maven settings", registryCredentials);
 
     ImageReference targetImageReference = ImageReference.of(registry, repository, tag);
     ImageFormat imageFormatToEnum = ImageFormat.valueOf(imageFormat);
