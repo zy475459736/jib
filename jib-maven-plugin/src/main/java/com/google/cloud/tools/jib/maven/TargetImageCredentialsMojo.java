@@ -16,20 +16,14 @@
 
 package com.google.cloud.tools.jib.maven;
 
-import com.google.api.client.util.Base64;
 import com.google.cloud.tools.jib.builder.BuildConfiguration;
 import com.google.cloud.tools.jib.builder.RetrieveRegistryCredentialsStep;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.http.Authorizations;
 import com.google.cloud.tools.jib.image.ImageReference;
+import com.google.cloud.tools.jib.image.InvalidImageReferenceException;
 import com.google.cloud.tools.jib.registry.credentials.NonexistentDockerCredentialHelperException;
 import com.google.cloud.tools.jib.registry.credentials.RegistryCredentials;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.annotation.Nullable;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -38,11 +32,20 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.settings.Server;
 
-@Mojo(name = "targetImageCredentials")
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Mojo(name="targetImageCredentials")
 public class TargetImageCredentialsMojo extends AbstractMojo {
 
   @Parameter(defaultValue = "${session}", readonly = true)
   private MavenSession session;
+
+  @Parameter(defaultValue = "gcr.io/distroless/java", required = true)
+  private String from;
 
   @Parameter private String registry;
 
@@ -50,12 +53,18 @@ public class TargetImageCredentialsMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
-    if (registry == null) {
-      registry = ImageReference.getDefaultRegistry();
-    }
+    // Parses 'from' into image reference.
+    ImageReference baseImage = getBaseImageReference();
 
     // Checks Maven settings for registry credentials.
+    session.getSettings().getServer(baseImage.getRegistry());
     Map<String, Authorization> registryCredentials = new HashMap<>(2);
+    // Retrieves credentials for the base image registry.
+    Authorization baseImageRegistryCredentials =
+        getRegistryCredentialsFromSettings(baseImage.getRegistry());
+    if (baseImageRegistryCredentials != null) {
+      registryCredentials.put(baseImage.getRegistry(), baseImageRegistryCredentials);
+    }
     // Retrieves credentials for the target registry.
     Authorization targetRegistryCredentials = getRegistryCredentialsFromSettings(registry);
     if (targetRegistryCredentials != null) {
@@ -66,46 +75,31 @@ public class TargetImageCredentialsMojo extends AbstractMojo {
 
     BuildConfiguration buildConfiguration =
         BuildConfiguration.builder(new MavenBuildLogger(getLog()))
-            .setBaseImage(ImageReference.of(null, "ignored", null))
+            .setBaseImage(baseImage)
             .setTargetImage(ImageReference.of(registry, "ignored", null))
             .setCredentialHelperNames(credHelpers)
             .setKnownRegistryCredentials(mavenSettingsCredentials)
             .setMainClass("ignored")
             .build();
 
-    RetrieveRegistryCredentialsStep retrieveRegistryCredentialsStep =
-        new RetrieveRegistryCredentialsStep(buildConfiguration, registry);
+    RetrieveRegistryCredentialsStep retrieveRegistryCredentialsStep = new RetrieveRegistryCredentialsStep(buildConfiguration, registry);
     try {
       Authorization authorization = retrieveRegistryCredentialsStep.call();
-      if (authorization == null) {
-        throw new MojoExecutionException("Could not retrieve credentials for " + registry);
-      }
-
-      if (!"Basic".equals(authorization.getScheme())) {
-        throw new MojoExecutionException("Credentials not retrieve correctly");
-      }
-
       System.out.println("STARTAUTH");
-
-      // Split a token into username and secret using the 'username:secret' format. Uses first colon
-      // to split.
-      String token =
-          new String(Base64.decodeBase64(authorization.getToken()), StandardCharsets.UTF_8);
-      int colonIndex = token.indexOf(':');
-      String username = token.substring(0, colonIndex);
-      String secret = token.substring(colonIndex + 1);
-
-      System.out.println(username);
-      System.out.println(secret);
-
-      Server server = new Server();
-      server.setId("_jib_credentials");
-      server.setUsername(username);
-      server.setPassword(secret);
-      session.getSettings().addServer(server);
+      System.out.println(authorization);
 
     } catch (IOException | NonexistentDockerCredentialHelperException ex) {
       throw new MojoExecutionException("Retrieve credentials failed", ex);
+    }
+  }
+
+  /** @return the {@link ImageReference} parsed from {@link #from}. */
+  private ImageReference getBaseImageReference() throws MojoFailureException {
+    try {
+      return ImageReference.parse(from);
+
+    } catch (InvalidImageReferenceException ex) {
+      throw new MojoFailureException("Parameter 'from' is invalid", ex);
     }
   }
 
