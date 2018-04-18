@@ -138,27 +138,24 @@ public class BuildImageMojo extends AbstractMojo {
     // Parses 'from' into image reference.
     ImageReference baseImage = getBaseImageReference();
 
-    // Makes the 'target' image reference.
-    ImageReference targetImageReference = ImageReference.of(registry, repository, tag);
-
     // Checks Maven settings for registry credentials.
     session.getSettings().getServer(baseImage.getRegistry());
     Map<String, Authorization> registryCredentials = new HashMap<>(2);
     // Retrieves credentials for the base image registry.
     Authorization baseImageRegistryCredentials =
-        getRegistryCredentialsFromSettings(baseImage.getRegistry());
+            getRegistryCredentialsFromSettings(baseImage.getRegistry());
     if (baseImageRegistryCredentials != null) {
       registryCredentials.put(baseImage.getRegistry(), baseImageRegistryCredentials);
     }
     // Retrieves credentials for the target registry.
-    Authorization targetRegistryCredentials =
-        getRegistryCredentialsFromSettings(targetImageReference.getRegistry());
+    Authorization targetRegistryCredentials = getRegistryCredentialsFromSettings(registry);
     if (targetRegistryCredentials != null) {
-      registryCredentials.put(targetImageReference.getRegistry(), targetRegistryCredentials);
+      registryCredentials.put(registry, targetRegistryCredentials);
     }
     RegistryCredentials mavenSettingsCredentials =
-        RegistryCredentials.from("Maven settings", registryCredentials);
+            RegistryCredentials.from("Maven settings", registryCredentials);
 
+    ImageReference targetImageReference = ImageReference.of(registry, repository, tag);
     ImageFormat imageFormatToEnum = ImageFormat.valueOf(imageFormat);
     BuildConfiguration buildConfiguration =
         BuildConfiguration.builder(new MavenBuildLogger(getLog()))
