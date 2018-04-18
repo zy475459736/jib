@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
  */
 public class ImageReference {
 
-  private static final String DOCKER_HUB_REGISTRY = "registry.hub.docker.com";
+  public static final String DOCKER_HUB_REGISTRY = "registry.hub.docker.com";
   private static final String DEFAULT_TAG = "latest";
   private static final String LIBRARY_REPOSITORY_PREFIX = "library/";
 
@@ -155,6 +155,10 @@ public class ImageReference {
   /** @return {@code true} if is a valid tag; {@code false} otherwise */
   public static boolean isValidTag(String tag) {
     return tag.matches(TAG_REGEX);
+  }
+
+  public static String getDefaultRegistry() {
+    return DOCKER_HUB_REGISTRY;
   }
 
   private final String registry;
