@@ -45,7 +45,8 @@ public class ImageReferenceTest {
           "Repositorywithuppercase",
           "registry:8080/Repositorywithuppercase/repository:sometag",
           "domain.name:nonnumberport/repository",
-          "domain.name:nonnumberport//:no-repository");
+          "domain.name:nonnumberport//:no-repository",
+          "domain.com/respository/imagename:slashes/in/tag");
 
   @Test
   public void testParse_pass() throws InvalidImageReferenceException {
@@ -84,12 +85,14 @@ public class ImageReferenceTest {
   @Test
   public void testParse_invalid() {
     for (String badImageReference : badImageReferences) {
+      long time = System.nanoTime();
       try {
         ImageReference.parse(badImageReference);
         Assert.fail(badImageReference + " should not be a valid image reference");
 
       } catch (InvalidImageReferenceException ex) {
         Assert.assertThat(ex.getMessage(), CoreMatchers.containsString(badImageReference));
+        System.out.println("Timed time = " + (System.nanoTime() - time) / 1_000_000);
       }
     }
   }
