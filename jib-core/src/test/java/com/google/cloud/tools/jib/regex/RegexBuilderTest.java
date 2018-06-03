@@ -37,16 +37,16 @@ public class RegexBuilderTest extends RegexBuilder {
 
   @Test
   public void test_quantifiers() {
-    Assert.assertEquals("INSIDE*", any("INSIDE"));
-    Assert.assertEquals("INSIDE?", optional("INSIDE"));
-    Assert.assertEquals("INSIDE+", repeated("INSIDE"));
-    Assert.assertEquals("INSIDE{0,100}", range("INSIDE", 0, 100));
+    Assert.assertEquals("(?:INSIDE)*", any("INSIDE"));
+    Assert.assertEquals("(?:INSIDE)?", optional("INSIDE"));
+    Assert.assertEquals("(?:INSIDE)+", repeated("INSIDE"));
+    Assert.assertEquals("(?:INSIDE){0,100}", range(0, 100, "INSIDE"));
   }
 
   @Test
   public void test_logical() {
     Assert.assertEquals("FIRSTSECONDTHIRD", sequence("FIRST", "SECOND", "THIRD"));
-    Assert.assertEquals("FIRST|SECOND|THIRD", or("FIRST", "SECOND", "THIRD"));
+    Assert.assertEquals("(?:FIRST|SECOND|THIRD)", or("FIRST", "SECOND", "THIRD"));
   }
 
   @Test
