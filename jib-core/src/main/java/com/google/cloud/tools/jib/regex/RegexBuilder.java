@@ -60,23 +60,23 @@ public abstract class RegexBuilder {
   }
 
   /** Zero or more. */
-  protected static String any(String inside) {
-    return inside + "*";
+  protected static String any(String... insides) {
+    return group(insides) + "*";
   }
 
   /** Zero or one. */
-  protected static String optional(String inside) {
-    return inside + "?";
+  protected static String optional(String... insides) {
+    return group(insides) + "?";
   }
 
   /** One or more. */
-  protected static String repeated(String inside) {
-    return inside + "+";
+  protected static String repeated(String... insides) {
+    return group(insides) + "+";
   }
 
   /** At least {@code min} and not more than {@code max}. */
-  protected static String range(String component, int min, int max) {
-    return component + "{" + min + "," + max + "}";
+  protected static String range(int min, int max, String... insides) {
+    return group(insides) + "{" + min + "," + max + "}";
   }
 
   /** In-order sequence. */
@@ -86,7 +86,7 @@ public abstract class RegexBuilder {
 
   /** Matches any of {@code parts}. */
   protected static String or(String... parts) {
-    return String.join("|", parts);
+    return group(String.join("|", parts));
   }
 
   /** Matches beginning of line. */

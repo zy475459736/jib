@@ -39,8 +39,7 @@ public class ImageReference {
      * Matches all sequences of alphanumeric characters possibly separated by any number of dashes
      * in the middle.
      */
-    private static final String REGISTRY_PART =
-        group(alphanum(), group(any(alphanum('-')), alphanum()));
+    private static final String REGISTRY_PART = group(alphanum(), any(alphanum('-')), alphanum());
 
     /**
      * Matches sequences of {@link #REGISTRY_PART} separated by a dot, with an optional {@code
@@ -49,8 +48,8 @@ public class ImageReference {
     private static final String REGISTRY =
         sequence(
             REGISTRY_PART,
-            any(group(literal('.'), REGISTRY_PART)),
-            optional(group(literal(':'), repeated(digit()))));
+            optional(repeated(literal('.'), REGISTRY_PART)),
+            optional(literal(':'), repeated(digit())));
 
     /**
      * Matches all sequences of lowercase alphanumeric characters separated by a separator.
@@ -60,18 +59,15 @@ public class ImageReference {
     private static final String REPOSITORY_PART =
         sequence(
             repeated(lowerAlphanum()),
-            any(
-                group(
-                    sequence(
-                        group(or(chars('_', '.'), "__", any(literal('-')))),
-                        repeated(lowerAlphanum())))));
+            optional(
+                repeated(or(chars('_', '.'), "__", any(literal('-'))), repeated(lowerAlphanum()))));
 
     /** Matches all repetitions of {@link #REPOSITORY_PART} separated by a backslash. */
     private static final String REPOSITORY =
-        sequence(any(group(REPOSITORY_PART, literal('/'))), REPOSITORY_PART);
+        sequence(REPOSITORY_PART, optional(repeated(literal('/'), REPOSITORY_PART)));
 
     /** Matches a tag of max length 128. */
-    private static final String TAG = sequence(wordChars(), range(wordChars('.', '-'), 0, 127));
+    private static final String TAG = sequence(wordChars(), range(0, 127, wordChars('.', '-')));
 
     /**
      * Matches a full image reference, which is the registry, repository, and tag/digest separated
@@ -80,13 +76,12 @@ public class ImageReference {
     private static final String REFERENCE =
         sequence(
             begin(),
-            optional(group(match(REGISTRY), literal('/'))),
+            optional(match(REGISTRY), literal('/')),
             match(REPOSITORY),
             optional(
-                group(
-                    or(
-                        group(literal(':'), match(TAG)),
-                        group(literal('@'), match(DescriptorDigest.DIGEST_REGEX))))),
+                or(
+                    sequence(literal(':'), match(TAG)),
+                    sequence(literal('@'), match(DescriptorDigest.DIGEST_REGEX)))),
             end());
 
     private static final Pattern REFERENCE_PATTERN = Pattern.compile(Regex.REFERENCE);
