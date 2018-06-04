@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.gradle;
 
+import java.io.Serializable;
 import javax.annotation.Nullable;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;

@@ -140,12 +140,15 @@ public class JibExtension {
     return Preconditions.checkNotNull(to.getImage());
   }
 
+  @Input
   @Nested
   @Optional
   ImageConfiguration getFrom() {
     return from;
   }
 
+  @Input
+  @Nested
   ImageConfiguration getTo() {
     return to;
   }

@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import javax.annotation.Nullable;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
@@ -38,6 +39,7 @@ public class DockerContextTask extends DefaultTask {
    * This will call the property {@code "jib"} so that it is the same name as the extension. This
    * way, the user would see error messages for missing configuration with the prefix {@code jib.}.
    */
+  @Input
   @Nested
   @Nullable
   public JibExtension getJib() {
