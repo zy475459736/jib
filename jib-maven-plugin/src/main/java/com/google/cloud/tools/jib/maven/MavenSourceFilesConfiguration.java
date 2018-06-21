@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.project.MavenProject;
