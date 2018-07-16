@@ -52,7 +52,7 @@ public class BuildDockerTask extends DefaultTask {
   private static final HelpfulSuggestions HELPFUL_SUGGESTIONS =
       HelpfulSuggestionsProvider.get("Build to Docker daemon failed");
 
-  @Nullable private JibExtension jibExtension;
+  @Nullable public JibExtension jibExtension;
 
   /**
    * This will call the property {@code "jib"} so that it is the same name as the extension. This
@@ -147,7 +147,7 @@ public class BuildDockerTask extends DefaultTask {
     }
   }
 
-  BuildDockerTask setJibExtension(JibExtension jibExtension) {
+  public BuildDockerTask setJibExtension(JibExtension jibExtension) {
     this.jibExtension = jibExtension;
     return this;
   }
