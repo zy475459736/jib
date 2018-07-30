@@ -31,6 +31,8 @@ sourceSets {
     main {
         java.srcDir file('../jib-core/src/main/java')
         resources.srcDir file('../jib-core/src/main/resources')
+
+        java.srcDir file('../jib-plugins-common/src/main/java')
     }
     test {
         java.srcDir file('../jib-core/src/test/java')
