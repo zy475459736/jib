@@ -53,7 +53,7 @@ dependencies {
 jar {
     manifest {
         attributes 'Implementation-Version': version
-        
+
         // OSGi metadata
         attributes 'Bundle-SymbolicName': 'com.google.cloud.tools.jib'
         attributes 'Bundle-Name': 'Jib library for building Docker and OCI images'
