@@ -18,24 +18,24 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.Timer;
 import com.google.cloud.tools.jib.async.AsyncStep;
-import com.google.cloud.tools.jib.cache.Cache;
-import com.google.cloud.tools.jib.cache.CacheMetadataCorruptedException;
-import com.google.cloud.tools.jib.cache.CacheReader;
-import com.google.cloud.tools.jib.cache.CacheWriter;
-import com.google.cloud.tools.jib.cache.CachedLayerWithMetadata;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.configuration.LayerConfiguration;
 import com.google.cloud.tools.jib.image.LayerEntry;
 import com.google.cloud.tools.jib.image.ReproducibleLayerBuilder;
+import com.google.cloud.tools.jib.json.JsonTemplateMapper;
+import com.google.cloud.tools.jib.ncache.Cache;
+import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheMetadataCorruptedException;
+import com.google.cloud.tools.jib.ncache.json.MetadataTranslator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /** Builds and caches application layers. */
-class BuildAndCacheApplicationLayerStep
-    implements AsyncStep<CachedLayerWithMetadata>, Callable<CachedLayerWithMetadata> {
+class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callable<CacheEntry> {
 
   private static final String DESCRIPTION = "Building application layers";
 
@@ -76,7 +76,7 @@ class BuildAndCacheApplicationLayerStep
   private final LayerConfiguration layerConfiguration;
   private final Cache cache;
 
-  private final ListenableFuture<CachedLayerWithMetadata> listenableFuture;
+  private final ListenableFuture<CacheEntry> listenableFuture;
 
   private BuildAndCacheApplicationLayerStep(
       String layerType,
@@ -93,23 +93,22 @@ class BuildAndCacheApplicationLayerStep
   }
 
   @Override
-  public ListenableFuture<CachedLayerWithMetadata> getFuture() {
+  public ListenableFuture<CacheEntry> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public CachedLayerWithMetadata call() throws IOException, CacheMetadataCorruptedException {
+  public CacheEntry call() throws IOException, CacheMetadataCorruptedException {
     String description = "Building " + layerType + " layer";
 
     buildConfiguration.getBuildLogger().lifecycle(description + "...");
 
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), description)) {
       // Don't build the layer if it exists already.
-      CachedLayerWithMetadata cachedLayer =
-          new CacheReader(cache)
-              .getUpToDateLayerByLayerEntries(layerConfiguration.getLayerEntries());
-      if (cachedLayer != null) {
-        return cachedLayer;
+      Optional<CacheEntry> optionalCacheEntry =
+          cache.getUpToDateLayerByLayerEntries(layerConfiguration.getLayerEntries());
+      if (optionalCacheEntry.isPresent()) {
+        return optionalCacheEntry.get();
       }
 
       ReproducibleLayerBuilder reproducibleLayerBuilder = new ReproducibleLayerBuilder();
@@ -118,13 +117,18 @@ class BuildAndCacheApplicationLayerStep
             layerEntry.getSourceFiles(), layerEntry.getExtractionPath());
       }
 
-      cachedLayer = new CacheWriter(cache).writeLayer(reproducibleLayerBuilder);
+      ImmutableList<LayerEntry> layerEntries = reproducibleLayerBuilder.getLayerEntries();
+      CacheEntry cacheEntry =
+          cache.saveApplicationLayer(
+              reproducibleLayerBuilder.build().getBlob(),
+              Cache.getSelectorDigest(layerEntries),
+              JsonTemplateMapper.toBlob(MetadataTranslator.toTemplate(layerEntries)));
 
       buildConfiguration
           .getBuildLogger()
-          .debug(description + " built " + cachedLayer.getBlobDescriptor().getDigest());
+          .debug(description + " built " + cacheEntry.getLayer().getDigest());
 
-      return cachedLayer;
+      return cacheEntry;
     }
   }
 }

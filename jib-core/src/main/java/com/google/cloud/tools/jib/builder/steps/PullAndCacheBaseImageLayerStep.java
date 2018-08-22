@@ -18,24 +18,23 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.Timer;
 import com.google.cloud.tools.jib.async.AsyncStep;
-import com.google.cloud.tools.jib.cache.Cache;
-import com.google.cloud.tools.jib.cache.CacheReader;
-import com.google.cloud.tools.jib.cache.CacheWriter;
-import com.google.cloud.tools.jib.cache.CachedLayer;
+import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
+import com.google.cloud.tools.jib.ncache.Cache;
+import com.google.cloud.tools.jib.ncache.CacheEntry;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
-import com.google.common.io.CountingOutputStream;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 /** Pulls and caches a single base image layer. */
-class PullAndCacheBaseImageLayerStep implements AsyncStep<CachedLayer>, Callable<CachedLayer> {
+class PullAndCacheBaseImageLayerStep implements AsyncStep<CacheEntry>, Callable<CacheEntry> {
 
   private static final String DESCRIPTION = "Pulling base image layer %s";
 
@@ -44,7 +43,7 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CachedLayer>, Callable
   private final DescriptorDigest layerDigest;
   private final @Nullable Authorization pullAuthorization;
 
-  private final ListenableFuture<CachedLayer> listenableFuture;
+  private final ListenableFuture<CacheEntry> listenableFuture;
 
   PullAndCacheBaseImageLayerStep(
       ListeningExecutorService listeningExecutorService,
@@ -61,12 +60,12 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CachedLayer>, Callable
   }
 
   @Override
-  public ListenableFuture<CachedLayer> getFuture() {
+  public ListenableFuture<CacheEntry> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public CachedLayer call() throws IOException, RegistryException {
+  public CacheEntry call() throws IOException, RegistryException {
     try (Timer ignored =
         new Timer(buildConfiguration.getBuildLogger(), String.format(DESCRIPTION, layerDigest))) {
       RegistryClient registryClient =
@@ -79,16 +78,29 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CachedLayer>, Callable
               .newRegistryClient();
 
       // Checks if the layer already exists in the cache.
-      CachedLayer cachedLayer = new CacheReader(cache).getLayer(layerDigest);
-      if (cachedLayer != null) {
-        return cachedLayer;
+      Optional<CacheEntry> cacheEntry = cache.getLayer(layerDigest);
+      if (cacheEntry.isPresent()) {
+        return cacheEntry.get();
       }
 
-      CacheWriter cacheWriter = new CacheWriter(cache);
-      CountingOutputStream layerOutputStream = cacheWriter.getLayerOutputStream(layerDigest);
-      registryClient.pullBlob(layerDigest, layerOutputStream);
-      layerOutputStream.close();
-      return cacheWriter.getCachedLayer(layerOutputStream.getCount(), layerDigest);
+      // TODO: Make this exception handling more readable.
+      try {
+        return cache.saveBaseImageLayer(
+            Blobs.from(
+                outputStream -> {
+                  try {
+                    registryClient.pullBlob(layerDigest, outputStream);
+
+                  } catch (RegistryException ex) {
+                    throw new IOException(ex);
+                  }
+                }));
+      } catch (IOException ex) {
+        if (ex.getCause() instanceof RegistryException) {
+          throw (RegistryException) (ex.getCause());
+        }
+        throw ex;
+      }
     }
   }
 }

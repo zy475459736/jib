@@ -18,16 +18,14 @@ package com.google.cloud.tools.jib.docker;
 
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.Blobs;
-import com.google.cloud.tools.jib.cache.CachedLayer;
 import com.google.cloud.tools.jib.docker.json.DockerLoadManifestTemplate;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.ImageReference;
+import com.google.cloud.tools.jib.image.Layer;
 import com.google.cloud.tools.jib.image.json.ImageToJsonTranslator;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.tar.TarStreamBuilder;
 import java.io.IOException;
-import java.nio.file.Path;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 
 /** Translates an {@link Image} to a tarball that can be loaded into Docker. */
 public class ImageToTarballTranslator {
@@ -37,14 +35,14 @@ public class ImageToTarballTranslator {
   /** File name for the manifest in the tarball. */
   private static final String MANIFEST_JSON_FILE_NAME = "manifest.json";
 
-  private final Image<CachedLayer> image;
+  private final Image<? extends Layer> image;
 
   /**
    * Instantiate with an {@link Image}.
    *
    * @param image the image to convert into a tarball.
    */
-  public ImageToTarballTranslator(Image<CachedLayer> image) {
+  public ImageToTarballTranslator(Image<? extends Layer> image) {
     this.image = image;
   }
 
@@ -53,12 +51,11 @@ public class ImageToTarballTranslator {
     DockerLoadManifestTemplate manifestTemplate = new DockerLoadManifestTemplate();
 
     // Adds all the layers to the tarball and manifest.
-    for (CachedLayer layer : image.getLayers()) {
-      Path layerContentFile = layer.getContentFile();
-      String layerName = layerContentFile.getFileName().toString();
+    for (Layer layer : image.getLayers()) {
+      String layerName = layer.getBlobDescriptor().getDigest().getHash() + ".tar.gz";
 
-      tarStreamBuilder.addTarArchiveEntry(
-          new TarArchiveEntry(layerContentFile.toFile(), layerName));
+      tarStreamBuilder.addBlobEntry(
+          layer.getBlob(), layer.getBlobDescriptor().getSize(), layerName);
       manifestTemplate.addLayerFile(layerName);
     }
 

@@ -18,11 +18,11 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.async.AsyncStep;
 import com.google.cloud.tools.jib.async.NonBlockingSteps;
-import com.google.cloud.tools.jib.cache.CachedLayer;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.docker.ImageToTarballTranslator;
 import com.google.cloud.tools.jib.image.Image;
+import com.google.cloud.tools.jib.image.Layer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -84,7 +84,7 @@ class LoadDockerStep implements AsyncStep<Void>, Callable<Void> {
 
   private Void afterPushBaseImageLayerFuturesFuture()
       throws ExecutionException, InterruptedException, IOException {
-    Image<CachedLayer> image = NonBlockingSteps.get(NonBlockingSteps.get(buildImageStep));
+    Image<Layer> image = NonBlockingSteps.get(NonBlockingSteps.get(buildImageStep));
 
     // Load the image to docker daemon.
     buildConfiguration.getBuildLogger().lifecycle("Loading to Docker daemon...");

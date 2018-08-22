@@ -17,10 +17,6 @@
 package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.Command;
-import com.google.cloud.tools.jib.cache.CacheDirectoryCreationException;
-import com.google.cloud.tools.jib.cache.CacheDirectoryNotOwnedException;
-import com.google.cloud.tools.jib.cache.CacheMetadataCorruptedException;
-import com.google.cloud.tools.jib.cache.Caches;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.configuration.ContainerConfiguration;
 import com.google.cloud.tools.jib.configuration.ImageConfiguration;
@@ -29,6 +25,10 @@ import com.google.cloud.tools.jib.frontend.ExposedPortsParser;
 import com.google.cloud.tools.jib.frontend.JavaEntrypointConstructor;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.image.InvalidImageReferenceException;
+import com.google.cloud.tools.jib.ncache.CacheDirectoryCreationException;
+import com.google.cloud.tools.jib.ncache.CacheDirectoryNotOwnedException;
+import com.google.cloud.tools.jib.ncache.CacheMetadataCorruptedException;
+import com.google.cloud.tools.jib.ncache.Caches;
 import com.google.cloud.tools.jib.registry.LocalRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -87,7 +87,7 @@ public class BuildStepsIntegrationTest {
 
   @Test
   public void testSteps_forBuildToDockerRegistry()
-      throws IOException, InterruptedException, CacheMetadataCorruptedException, ExecutionException,
+      throws IOException, InterruptedException, ExecutionException, CacheMetadataCorruptedException,
           CacheDirectoryNotOwnedException, CacheDirectoryCreationException {
     BuildSteps buildImageSteps =
         getBuildSteps(
@@ -120,8 +120,8 @@ public class BuildStepsIntegrationTest {
   @Test
   public void testSteps_forBuildToDockerRegistry_dockerHubBaseImage()
       throws InvalidImageReferenceException, IOException, InterruptedException, ExecutionException,
-          CacheDirectoryCreationException, CacheMetadataCorruptedException,
-          CacheDirectoryNotOwnedException {
+          CacheMetadataCorruptedException, CacheDirectoryNotOwnedException,
+          CacheDirectoryCreationException {
     getBuildSteps(
             getBuildConfiguration(
                 ImageReference.parse("openjdk:8-jre-alpine"),
@@ -136,7 +136,7 @@ public class BuildStepsIntegrationTest {
 
   @Test
   public void testSteps_forBuildToDockerDaemon()
-      throws IOException, InterruptedException, CacheMetadataCorruptedException, ExecutionException,
+      throws IOException, InterruptedException, ExecutionException, CacheMetadataCorruptedException,
           CacheDirectoryNotOwnedException, CacheDirectoryCreationException {
     BuildConfiguration buildConfiguration =
         getBuildConfiguration(
@@ -171,7 +171,7 @@ public class BuildStepsIntegrationTest {
 
   @Test
   public void testSteps_forBuildToTarball()
-      throws IOException, InterruptedException, CacheMetadataCorruptedException, ExecutionException,
+      throws IOException, InterruptedException, ExecutionException, CacheMetadataCorruptedException,
           CacheDirectoryNotOwnedException, CacheDirectoryCreationException {
     BuildConfiguration buildConfiguration =
         getBuildConfiguration(

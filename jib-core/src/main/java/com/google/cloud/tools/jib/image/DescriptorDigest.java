@@ -35,7 +35,7 @@ import java.security.DigestException;
 public class DescriptorDigest {
 
   /** Pattern matches a SHA-256 hash - 32 bytes in lowercase hexadecimal. */
-  private static final String HASH_REGEX = "[a-f0-9]{64}";
+  public static final String HASH_REGEX = "[a-f0-9]{64}";
 
   /** The algorithm prefix for the digest string. */
   private static final String DIGEST_PREFIX = "sha256:";

@@ -18,12 +18,12 @@ package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.Timer;
 import com.google.cloud.tools.jib.builder.steps.StepsRunner;
-import com.google.cloud.tools.jib.cache.Cache;
-import com.google.cloud.tools.jib.cache.CacheDirectoryCreationException;
-import com.google.cloud.tools.jib.cache.CacheDirectoryNotOwnedException;
-import com.google.cloud.tools.jib.cache.CacheMetadataCorruptedException;
-import com.google.cloud.tools.jib.cache.Caches;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
+import com.google.cloud.tools.jib.ncache.Cache;
+import com.google.cloud.tools.jib.ncache.CacheDirectoryCreationException;
+import com.google.cloud.tools.jib.ncache.CacheDirectoryNotOwnedException;
+import com.google.cloud.tools.jib.ncache.CacheMetadataCorruptedException;
+import com.google.cloud.tools.jib.ncache.Caches;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
@@ -199,19 +199,13 @@ public class BuildSteps {
     buildConfiguration.getBuildLogger().lifecycle("");
 
     try (Timer timer = new Timer(buildConfiguration.getBuildLogger(), description)) {
-      try (Caches caches = cachesInitializer.init()) {
-        Cache baseImageLayersCache = caches.getBaseCache();
-        Cache applicationLayersCache = caches.getApplicationCache();
+      Caches caches = cachesInitializer.init();
+      Cache baseImageLayersCache = caches.getBaseCache();
+      Cache applicationLayersCache = caches.getApplicationCache();
 
-        StepsRunner stepsRunner =
-            new StepsRunner(buildConfiguration, baseImageLayersCache, applicationLayersCache);
-        stepsRunnerConsumer.accept(stepsRunner);
-
-        // Writes the cached layers to the cache metadata.
-        baseImageLayersCache.addCachedLayersToMetadata(stepsRunner.getCachedBaseImageLayers());
-        applicationLayersCache.addCachedLayersWithMetadataToMetadata(
-            stepsRunner.getCachedApplicationLayers());
-      }
+      StepsRunner stepsRunner =
+          new StepsRunner(buildConfiguration, baseImageLayersCache, applicationLayersCache);
+      stepsRunnerConsumer.accept(stepsRunner);
     }
 
     if (buildConfiguration.getContainerConfiguration() != null) {
