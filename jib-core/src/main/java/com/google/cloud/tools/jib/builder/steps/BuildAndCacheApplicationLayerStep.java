@@ -24,8 +24,7 @@ import com.google.cloud.tools.jib.image.LayerEntry;
 import com.google.cloud.tools.jib.image.ReproducibleLayerBuilder;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.ncache.Cache;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
-import com.google.cloud.tools.jib.ncache.CacheMetadataCorruptedException;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
 import com.google.cloud.tools.jib.ncache.json.MetadataTranslator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -35,7 +34,8 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /** Builds and caches application layers. */
-class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callable<CacheEntry> {
+class BuildAndCacheApplicationLayerStep
+    implements AsyncStep<CacheReadEntry>, Callable<CacheReadEntry> {
 
   private static final String DESCRIPTION = "Building application layers";
 
@@ -76,7 +76,7 @@ class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callab
   private final LayerConfiguration layerConfiguration;
   private final Cache cache;
 
-  private final ListenableFuture<CacheEntry> listenableFuture;
+  private final ListenableFuture<CacheReadEntry> listenableFuture;
 
   private BuildAndCacheApplicationLayerStep(
       String layerType,
@@ -93,22 +93,22 @@ class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callab
   }
 
   @Override
-  public ListenableFuture<CacheEntry> getFuture() {
+  public ListenableFuture<CacheReadEntry> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public CacheEntry call() throws IOException, CacheMetadataCorruptedException {
+  public CacheReadEntry call() throws IOException {
     String description = "Building " + layerType + " layer";
 
     buildConfiguration.getBuildLogger().lifecycle(description + "...");
 
     try (Timer ignored = new Timer(buildConfiguration.getBuildLogger(), description)) {
       // Don't build the layer if it exists already.
-      Optional<CacheEntry> optionalCacheEntry =
+      Optional<CacheReadEntry> optionalCacheReadEntry =
           cache.getUpToDateLayerByLayerEntries(layerConfiguration.getLayerEntries());
-      if (optionalCacheEntry.isPresent()) {
-        return optionalCacheEntry.get();
+      if (optionalCacheReadEntry.isPresent()) {
+        return optionalCacheReadEntry.get();
       }
 
       ReproducibleLayerBuilder reproducibleLayerBuilder = new ReproducibleLayerBuilder();
@@ -118,7 +118,7 @@ class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callab
       }
 
       ImmutableList<LayerEntry> layerEntries = reproducibleLayerBuilder.getLayerEntries();
-      CacheEntry cacheEntry =
+      CacheReadEntry cacheReadEntry =
           cache.saveApplicationLayer(
               reproducibleLayerBuilder.build().getBlob(),
               Cache.getSelectorDigest(layerEntries),
@@ -126,9 +126,9 @@ class BuildAndCacheApplicationLayerStep implements AsyncStep<CacheEntry>, Callab
 
       buildConfiguration
           .getBuildLogger()
-          .debug(description + " built " + cacheEntry.getLayer().getDigest());
+          .debug(description + " built " + cacheReadEntry.getLayerDigest());
 
-      return cacheEntry;
+      return cacheReadEntry;
     }
   }
 }

@@ -24,6 +24,7 @@ import com.google.cloud.tools.jib.image.LayerEntry;
 import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.ncache.json.MetadataTemplate;
 import com.google.cloud.tools.jib.ncache.json.MetadataTranslator;
+import com.google.cloud.tools.jib.ncache.storage.DefaultCacheWriteEntry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -105,17 +106,19 @@ public class Cache {
    * @return the cached layer with digest {@code layerDigest}, or {@code null} if not found.
    * @throws IOException if an I/O exception occurs
    */
-  public Optional<CacheEntry> getLayer(DescriptorDigest layerDigest) throws IOException {
+  public Optional<CacheReadEntry> getLayer(DescriptorDigest layerDigest) throws IOException {
     return cacheStorage.retrieve(layerDigest);
   }
 
-  public CacheEntry saveBaseImageLayer(Blob layerBlob) throws IOException {
-    return cacheStorage.save(layerBlob, null, null);
+  public CacheReadEntry saveBaseImageLayer(Blob layerBlob) throws IOException {
+    return cacheStorage.save(DefaultCacheWriteEntry.layerOnly(layerBlob));
   }
 
-  public CacheEntry saveApplicationLayer(
+  public CacheReadEntry saveApplicationLayer(
       Blob layerBlob, DescriptorDigest layerSelectorDigest, Blob metadataBlob) throws IOException {
-    return cacheStorage.save(layerBlob, layerSelectorDigest, metadataBlob);
+    return cacheStorage.save(
+        DefaultCacheWriteEntry.withSelectorAndMetadata(
+            layerBlob, layerSelectorDigest, metadataBlob));
   }
 
   /**
@@ -129,8 +132,8 @@ public class Cache {
    * @return an up-to-date layer containing the source files.
    * @throws IOException if reading the source files fails.
    */
-  public Optional<CacheEntry> getUpToDateLayerByLayerEntries(ImmutableList<LayerEntry> layerEntries)
-      throws IOException {
+  public Optional<CacheReadEntry> getUpToDateLayerByLayerEntries(
+      ImmutableList<LayerEntry> layerEntries) throws IOException {
     // Serializes layerEntries as a JSON blob - the digests of which become the selector digest.
     DescriptorDigest metadataSelectorDigest = getSelectorDigest(layerEntries);
 
@@ -142,28 +145,28 @@ public class Cache {
     }
 
     // Grabs all the layer cache entries.
-    List<CacheEntry> cacheEntries = new ArrayList<>(matchingLayerDigests.size());
+    List<CacheReadEntry> cacheReadEntries = new ArrayList<>(matchingLayerDigests.size());
     for (DescriptorDigest layerDigest : matchingLayerDigests) {
-      cacheStorage.retrieve(layerDigest).ifPresent(cacheEntries::add);
+      cacheStorage.retrieve(layerDigest).ifPresent(cacheReadEntries::add);
     }
 
     // Determines the latest modification time for the source files.
     FileTime sourceFilesLastModifiedTime = getLatestModificationTime(layerEntries);
 
     // Checks if at least one of the matched layers is up-to-date.
-    for (CacheEntry cacheEntry : cacheEntries) {
-      Optional<CacheEntry.Metadata> optionalMetadata = cacheEntry.getMetadata();
-      if (!optionalMetadata.isPresent()) {
+    for (CacheReadEntry cacheReadEntry : cacheReadEntries) {
+      Optional<Blob> optionalMetadataBlob = cacheReadEntry.getMetadataBlob();
+      if (!optionalMetadataBlob.isPresent()) {
         continue;
       }
 
       MetadataTemplate metadataTemplate =
           JsonTemplateMapper.readJson(
-              Blobs.writeToString(optionalMetadata.get().getBlob()), MetadataTemplate.class);
+              Blobs.writeToString(optionalMetadataBlob.get()), MetadataTemplate.class);
 
       if (sourceFilesLastModifiedTime.compareTo(metadataTemplate.getLastModifiedTime()) <= 0) {
         // This layer is an up-to-date layer.
-        return Optional.of(cacheEntry);
+        return Optional.of(cacheReadEntry);
       }
     }
 

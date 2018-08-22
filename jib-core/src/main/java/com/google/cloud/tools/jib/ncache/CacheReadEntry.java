@@ -16,24 +16,20 @@
 
 package com.google.cloud.tools.jib.ncache;
 
+import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
-import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
-/**
- * Immutable
- *
- * <p>stores layer blobs by digest can select layer blobs by arbitrarily-defined selector digest
- */
-public interface CacheStorage {
+/** Immutable */
+public interface CacheReadEntry {
 
-  CacheReadEntry save(CacheWriteEntry cacheWriteEntry) throws IOException;
+  DescriptorDigest getLayerDigest();
 
-  List<DescriptorDigest> listDigests() throws IOException;
+  DescriptorDigest getLayerDiffId();
 
-  Optional<CacheReadEntry> retrieve(DescriptorDigest layerDigest) throws IOException;
+  long getLayerSize();
 
-  List<DescriptorDigest> listDigestsBySelector(DescriptorDigest layerSelectorDigest)
-      throws IOException;
+  Blob getLayerBlob();
+
+  Optional<Blob> getMetadataBlob();
 }

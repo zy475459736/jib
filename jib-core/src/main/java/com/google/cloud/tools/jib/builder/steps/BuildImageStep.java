@@ -27,7 +27,7 @@ import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.Layer;
 import com.google.cloud.tools.jib.image.LayerPropertyNotFoundException;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -43,22 +43,21 @@ class BuildImageStep
 
   private static final String DESCRIPTION = "Building container configuration";
 
-  private static Layer cacheEntryToLayer(CacheEntry cacheEntry) {
+  private static Layer cacheReadEntryToLayer(CacheReadEntry cacheReadEntry) {
     return new Layer() {
       @Override
       public Blob getBlob() throws LayerPropertyNotFoundException {
-        return cacheEntry.getLayer().getBlob();
+        return cacheReadEntry.getLayerBlob();
       }
 
       @Override
       public BlobDescriptor getBlobDescriptor() throws LayerPropertyNotFoundException {
-        return new BlobDescriptor(
-            cacheEntry.getLayer().getSize(), cacheEntry.getLayer().getDigest());
+        return new BlobDescriptor(cacheReadEntry.getLayerSize(), cacheReadEntry.getLayerDigest());
       }
 
       @Override
       public DescriptorDigest getDiffId() throws LayerPropertyNotFoundException {
-        return cacheEntry.getLayer().getDiffId();
+        return cacheReadEntry.getLayerDiffId();
       }
     };
   }
@@ -120,12 +119,12 @@ class BuildImageStep
       for (PullAndCacheBaseImageLayerStep pullAndCacheBaseImageLayerStep :
           NonBlockingSteps.get(pullAndCacheBaseImageLayersStep)) {
         imageBuilder.addLayer(
-            cacheEntryToLayer(NonBlockingSteps.get(pullAndCacheBaseImageLayerStep)));
+            cacheReadEntryToLayer(NonBlockingSteps.get(pullAndCacheBaseImageLayerStep)));
       }
       for (BuildAndCacheApplicationLayerStep buildAndCacheApplicationLayerStep :
           buildAndCacheApplicationLayerSteps) {
         imageBuilder.addLayer(
-            cacheEntryToLayer(NonBlockingSteps.get(buildAndCacheApplicationLayerStep)));
+            cacheReadEntryToLayer(NonBlockingSteps.get(buildAndCacheApplicationLayerStep)));
       }
 
       // Parameters that we passthrough from the base image

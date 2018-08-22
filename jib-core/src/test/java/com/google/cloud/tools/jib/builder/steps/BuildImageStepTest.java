@@ -17,21 +17,20 @@
 package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.JibLogger;
-import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.configuration.ContainerConfiguration;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.Layer;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
+import com.google.cloud.tools.jib.ncache.storage.DefaultCacheReadEntry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.security.DigestException;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import org.junit.Assert;
@@ -61,44 +60,13 @@ public class BuildImageStepTest {
     testDescriptorDigest =
         DescriptorDigest.fromHash(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    CacheEntry testCacheEntry =
-        new CacheEntry() {
-
-          @Override
-          public Layer getLayer() {
-            return new Layer() {
-              @Override
-              public DescriptorDigest getDigest() {
-                return testDescriptorDigest;
-              }
-
-              @Override
-              public DescriptorDigest getDiffId() {
-                return testDescriptorDigest;
-              }
-
-              @Override
-              public long getSize() {
-                return -1;
-              }
-
-              @Override
-              public Blob getBlob() {
-                return Blobs.from("ignored");
-              }
-
-              @Override
-              public Optional<DescriptorDigest> getSelector() {
-                return Optional.empty();
-              }
-            };
-          }
-
-          @Override
-          public Optional<Metadata> getMetadata() {
-            return Optional.empty();
-          }
-        };
+    CacheReadEntry testCacheReadEntry =
+        DefaultCacheReadEntry.builder()
+            .setLayerDigest(testDescriptorDigest)
+            .setLayerDiffId(testDescriptorDigest)
+            .setLayerSize(-1)
+            .setLayerBlob(Blobs.from("ignored"))
+            .build();
 
     Mockito.when(mockBuildConfiguration.getBuildLogger()).thenReturn(mockBuildLogger);
     Mockito.when(mockBuildConfiguration.getContainerConfiguration())
@@ -115,7 +83,7 @@ public class BuildImageStepTest {
             .addLabel("base.label", "base.label.value")
             .build();
     Mockito.when(mockPullAndCacheBaseImageLayerStep.getFuture())
-        .thenReturn(Futures.immediateFuture(testCacheEntry));
+        .thenReturn(Futures.immediateFuture(testCacheReadEntry));
     Mockito.when(mockPullAndCacheBaseImageLayersStep.getFuture())
         .thenReturn(
             Futures.immediateFuture(
@@ -128,7 +96,7 @@ public class BuildImageStepTest {
             Futures.immediateFuture(
                 new PullBaseImageStep.BaseImageWithAuthorization(baseImage, null)));
     Mockito.when(mockBuildAndCacheApplicationLayerStep.getFuture())
-        .thenReturn(Futures.immediateFuture(testCacheEntry));
+        .thenReturn(Futures.immediateFuture(testCacheReadEntry));
   }
 
   @Test

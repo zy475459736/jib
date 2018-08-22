@@ -23,7 +23,7 @@ import com.google.cloud.tools.jib.configuration.LayerConfiguration;
 import com.google.cloud.tools.jib.image.LayerEntry;
 import com.google.cloud.tools.jib.image.LayerPropertyNotFoundException;
 import com.google.cloud.tools.jib.ncache.Cache;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
 import com.google.cloud.tools.jib.ncache.storage.DefaultCacheStorage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
@@ -108,8 +108,8 @@ public class BuildAndCacheApplicationLayerStepTest {
     temporaryCacheDirectory = temporaryFolder.newFolder().toPath();
   }
 
-  private List<CacheEntry> buildFakeLayersToCache() throws ExecutionException {
-    List<CacheEntry> applicationCacheEntries = new ArrayList<>();
+  private List<CacheReadEntry> buildFakeLayersToCache() throws ExecutionException {
+    List<CacheReadEntry> applicationCacheEntries = new ArrayList<>();
 
     Cache cache = Cache.init(new DefaultCacheStorage(temporaryCacheDirectory));
     ImmutableList<BuildAndCacheApplicationLayerStep> buildAndCacheApplicationLayerSteps =
@@ -137,7 +137,7 @@ public class BuildAndCacheApplicationLayerStepTest {
         .thenReturn(fakeLayerConfigurations);
 
     // Populates the cache.
-    List<CacheEntry> applicationCacheEntries = buildFakeLayersToCache();
+    List<CacheReadEntry> applicationCacheEntries = buildFakeLayersToCache();
     Assert.assertEquals(5, applicationCacheEntries.size());
 
     // Re-initialize cache with the updated metadata.
@@ -158,38 +158,38 @@ public class BuildAndCacheApplicationLayerStepTest {
     cache
         .getUpToDateLayerByLayerEntries(dependenciesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(0).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(0).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(snapshotDependenciesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(1).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(1).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(resourcesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(2).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(2).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(classesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(3).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(3).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(extraFilesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(4).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(4).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
   }
 
   @Test
@@ -205,7 +205,7 @@ public class BuildAndCacheApplicationLayerStepTest {
         .thenReturn(fakeLayerConfigurations);
 
     // Populates the cache.
-    List<CacheEntry> applicationCacheEntries = buildFakeLayersToCache();
+    List<CacheReadEntry> applicationCacheEntries = buildFakeLayersToCache();
     Assert.assertEquals(3, applicationCacheEntries.size());
 
     ImmutableList<LayerEntry> dependenciesLayerEntries =
@@ -222,23 +222,23 @@ public class BuildAndCacheApplicationLayerStepTest {
     cache
         .getUpToDateLayerByLayerEntries(dependenciesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(0).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(0).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(resourcesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(1).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(1).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
     cache
         .getUpToDateLayerByLayerEntries(classesLayerEntries)
         .ifPresent(
-            cacheEntry ->
+            cacheReadEntry ->
                 Assert.assertEquals(
-                    applicationCacheEntries.get(2).getLayer().getDigest(),
-                    cacheEntry.getLayer().getDigest()));
+                    applicationCacheEntries.get(2).getLayerDigest(),
+                    cacheReadEntry.getLayerDigest()));
   }
 }

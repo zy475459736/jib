@@ -20,29 +20,12 @@ import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import java.util.Optional;
 
-public interface CacheEntry {
+/** Immutable */
+public interface CacheWriteEntry {
 
-  /** Immutable */
-  interface Layer {
+  Blob getLayerBlob();
 
-    DescriptorDigest getDigest();
+  Optional<DescriptorDigest> getSelector();
 
-    DescriptorDigest getDiffId();
-
-    long getSize();
-
-    Blob getBlob();
-
-    Optional<DescriptorDigest> getSelector();
-  }
-
-  /** Immutable */
-  interface Metadata {
-
-    Blob getBlob();
-  }
-
-  Layer getLayer();
-
-  Optional<Metadata> getMetadata();
+  Optional<Blob> getMetadataBlob();
 }

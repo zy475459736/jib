@@ -21,7 +21,7 @@ import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.hash.CountingDigestOutputStream;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.storage.LayerWriter.WrittenLayer;
 import com.google.common.base.Preconditions;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.nio.file.Path;
 import java.util.zip.GZIPOutputStream;
 import javax.annotation.Nullable;
 
-class LayerWriter implements TemporaryFileWriter.Writer<CacheEntry.Layer> {
+class LayerWriter implements TemporaryFileWriter.Writer<WrittenLayer> {
 
   @FunctionalInterface
   interface FilenameResolver {
@@ -38,18 +38,48 @@ class LayerWriter implements TemporaryFileWriter.Writer<CacheEntry.Layer> {
     Path getFilename(DescriptorDigest compressedDigest, DescriptorDigest diffId);
   }
 
+  static class WrittenLayer {
+
+    private final DescriptorDigest layerDigest;
+    private final DescriptorDigest layerDiffId;
+    private final long layerSize;
+    private final Blob layerBlob;
+
+    private WrittenLayer(
+        DescriptorDigest layerDigest,
+        DescriptorDigest layerDiffId,
+        long layerSize,
+        Blob layerBlob) {
+      this.layerDigest = layerDigest;
+      this.layerDiffId = layerDiffId;
+      this.layerSize = layerSize;
+      this.layerBlob = layerBlob;
+    }
+
+    public DescriptorDigest getLayerDigest() {
+      return layerDigest;
+    }
+
+    public DescriptorDigest getLayerDiffId() {
+      return layerDiffId;
+    }
+
+    public long getLayerSize() {
+      return layerSize;
+    }
+
+    public Blob getLayerBlob() {
+      return layerBlob;
+    }
+  }
+
   private final Blob layerBlob;
   private final FilenameResolver filenameResolver;
-  @Nullable private final DescriptorDigest selectorDigest;
-  @Nullable private CacheEntry.Layer layer;
+  @Nullable private WrittenLayer writtenLayer;
 
-  LayerWriter(
-      Blob layerBlob,
-      FilenameResolver filenameResolver,
-      @Nullable DescriptorDigest selectorDigest) {
+  LayerWriter(Blob layerBlob, FilenameResolver filenameResolver) {
     this.layerBlob = layerBlob;
     this.filenameResolver = filenameResolver;
-    this.selectorDigest = selectorDigest;
   }
 
   @Override
@@ -73,20 +103,16 @@ class LayerWriter implements TemporaryFileWriter.Writer<CacheEntry.Layer> {
       Path layerFile = filenameResolver.getFilename(compressedBlobDescriptor.getDigest(), diffId);
       Files.createDirectories(layerFile.getParent());
 
-      layer =
-          DefaultCacheEntry.newLayer(
-              layerDigest,
-              diffId,
-              compressedBlobDescriptor.getSize(),
-              Blobs.from(layerFile),
-              selectorDigest);
+      writtenLayer =
+          new WrittenLayer(
+              layerDigest, diffId, compressedBlobDescriptor.getSize(), Blobs.from(layerFile));
 
       return layerFile;
     }
   }
 
   @Override
-  public CacheEntry.Layer getResult() {
-    return Preconditions.checkNotNull(layer);
+  public WrittenLayer getResult() {
+    return Preconditions.checkNotNull(writtenLayer);
   }
 }

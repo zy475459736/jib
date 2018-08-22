@@ -17,9 +17,12 @@
 package com.google.cloud.tools.jib.ncache.storage;
 
 import com.google.cloud.tools.jib.blob.Blob;
+import com.google.cloud.tools.jib.blob.Blobs;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
 import com.google.cloud.tools.jib.ncache.CacheStorage;
+import com.google.cloud.tools.jib.ncache.CacheWriteEntry;
+import com.google.cloud.tools.jib.ncache.storage.LayerWriter.WrittenLayer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +32,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * Default cache storage engine.
@@ -61,17 +63,39 @@ public class DefaultCacheStorage implements CacheStorage {
   }
 
   @Override
-  public CacheEntry save(
-      Blob layerBlob, @Nullable DescriptorDigest selectorDigest, @Nullable Blob metadataBlob)
-      throws IOException {
-    CacheEntry.Layer layer = saveLayerBlob(layerBlob, selectorDigest);
+  public CacheReadEntry save(CacheWriteEntry cacheWriteEntry) throws IOException {
+    WrittenLayer writtenLayer =
+        temporaryFileWriter.write(
+            new LayerWriter(cacheWriteEntry.getLayerBlob(), this::getLayerFilename));
 
-    CacheEntry.Metadata metadata = null;
-    if (metadataBlob != null) {
-      metadata = saveMetadata(layer.getDigest(), selectorDigest, metadataBlob);
+    Blob metadataBlob = null;
+    if (cacheWriteEntry.getMetadataBlob().isPresent()) {
+      // Writes metadata blobs to metadata/.
+      DescriptorDigest metadataDigest =
+          temporaryFileWriter.write(
+              new MetadataWriter(
+                  cacheWriteEntry.getMetadataBlob().get(), this::getMetadataFilename));
+
+      // Writes file to associate layer with its metadata.
+      Files.createFile(getLayerMetadataFilename(writtenLayer.getLayerDigest(), metadataDigest));
+
+      // Writes metadata selector file.
+      if (cacheWriteEntry.getSelector().isPresent()) {
+        Files.createFile(
+            getSelectorFilename(
+                cacheWriteEntry.getSelector().get(), writtenLayer.getLayerDigest()));
+      }
+
+      metadataBlob = Blobs.from(getMetadataFilename(metadataDigest));
     }
 
-    return DefaultCacheEntry.newCacheEntry(layer, metadata);
+    return DefaultCacheReadEntry.builder()
+        .setLayerDigest(writtenLayer.getLayerDigest())
+        .setLayerDiffId(writtenLayer.getLayerDiffId())
+        .setLayerSize(writtenLayer.getLayerSize())
+        .setLayerBlob(writtenLayer.getLayerBlob())
+        .setMetadataBlob(metadataBlob)
+        .build();
   }
 
   @Override
@@ -84,31 +108,36 @@ public class DefaultCacheStorage implements CacheStorage {
   }
 
   @Override
-  public Optional<CacheEntry> retrieve(DescriptorDigest layerDigest) throws IOException {
+  public Optional<CacheReadEntry> retrieve(DescriptorDigest layerDigest) throws IOException {
     Path layerDirectory = getLayerDirectory(layerDigest);
+    if (!Files.exists(layerDirectory)) {
+      return Optional.empty();
+    }
 
-    CacheEntry.Layer layer = null;
-    CacheEntry.Metadata metadata = null;
+    DefaultCacheReadEntry.Builder cacheReadEntryBuilder = DefaultCacheReadEntry.builder();
 
     try (Stream<Path> filesInLayerDirectory = Files.list(layerDirectory)) {
       for (Path path : filesInLayerDirectory.collect(Collectors.toList())) {
         String filename = path.getFileName().toString();
         if (filename.endsWith(".layer")) {
-          layer = DefaultCacheEntry.newLayer(layerDigest, path);
+          cacheReadEntryBuilder
+              .setLayerDiffId(
+                  asDescriptorDigest(
+                      path.getFileName()
+                          .toString()
+                          .substring(0, DescriptorDigest.HASH_REGEX.length())))
+              .setLayerSize(Files.size(path))
+              .setLayerBlob(Blobs.from(path));
+
         } else if (filename.endsWith(".metadata")) {
           DescriptorDigest metadataDigest =
               asDescriptorDigest(filename.substring(0, DescriptorDigest.HASH_REGEX.length()));
-          metadata = DefaultCacheEntry.newMetadata(getMetadataFilename(metadataDigest));
+          cacheReadEntryBuilder.setMetadataBlob(Blobs.from(getMetadataFilename(metadataDigest)));
         }
       }
     }
 
-    if (layer == null || metadata == null) {
-      // TODO: Throw metadata corruption exception.
-      return Optional.empty();
-    }
-
-    return Optional.of(DefaultCacheEntry.newCacheEntry(layer, metadata));
+    return Optional.of(cacheReadEntryBuilder.build());
   }
 
   @Override
@@ -163,29 +192,5 @@ public class DefaultCacheStorage implements CacheStorage {
           .map(path -> path.getFileName().toString())
           .filter(directoryName -> directoryName.matches(DescriptorDigest.HASH_REGEX));
     }
-  }
-
-  private CacheEntry.Layer saveLayerBlob(Blob layerBlob, @Nullable DescriptorDigest selectorDigest)
-      throws IOException {
-    return temporaryFileWriter.write(
-        new LayerWriter(layerBlob, this::getLayerFilename, selectorDigest));
-  }
-
-  private CacheEntry.Metadata saveMetadata(
-      DescriptorDigest layerDigest, @Nullable DescriptorDigest selectorDigest, Blob metadataBlob)
-      throws IOException {
-    // Writes metadata blobs to metadata/.
-    DescriptorDigest metadataDigest =
-        temporaryFileWriter.write(new MetadataWriter(metadataBlob, this::getMetadataFilename));
-
-    // Writes file to associate layer with its metadata.
-    Files.createFile(getLayerMetadataFilename(layerDigest, metadataDigest));
-
-    // Writes metadata selector file.
-    if (selectorDigest != null) {
-      Files.createFile(getSelectorFilename(selectorDigest, layerDigest));
-    }
-
-    return DefaultCacheEntry.newMetadata(getMetadataFilename(metadataDigest));
   }
 }

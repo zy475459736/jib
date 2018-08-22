@@ -23,7 +23,7 @@ import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.http.Authorization;
 import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.ncache.Cache;
-import com.google.cloud.tools.jib.ncache.CacheEntry;
+import com.google.cloud.tools.jib.ncache.CacheReadEntry;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.cloud.tools.jib.registry.RegistryException;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,7 +34,8 @@ import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 /** Pulls and caches a single base image layer. */
-class PullAndCacheBaseImageLayerStep implements AsyncStep<CacheEntry>, Callable<CacheEntry> {
+class PullAndCacheBaseImageLayerStep
+    implements AsyncStep<CacheReadEntry>, Callable<CacheReadEntry> {
 
   private static final String DESCRIPTION = "Pulling base image layer %s";
 
@@ -43,7 +44,7 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CacheEntry>, Callable<
   private final DescriptorDigest layerDigest;
   private final @Nullable Authorization pullAuthorization;
 
-  private final ListenableFuture<CacheEntry> listenableFuture;
+  private final ListenableFuture<CacheReadEntry> listenableFuture;
 
   PullAndCacheBaseImageLayerStep(
       ListeningExecutorService listeningExecutorService,
@@ -60,12 +61,12 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CacheEntry>, Callable<
   }
 
   @Override
-  public ListenableFuture<CacheEntry> getFuture() {
+  public ListenableFuture<CacheReadEntry> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public CacheEntry call() throws IOException, RegistryException {
+  public CacheReadEntry call() throws IOException, RegistryException {
     try (Timer ignored =
         new Timer(buildConfiguration.getBuildLogger(), String.format(DESCRIPTION, layerDigest))) {
       RegistryClient registryClient =
@@ -78,9 +79,9 @@ class PullAndCacheBaseImageLayerStep implements AsyncStep<CacheEntry>, Callable<
               .newRegistryClient();
 
       // Checks if the layer already exists in the cache.
-      Optional<CacheEntry> cacheEntry = cache.getLayer(layerDigest);
-      if (cacheEntry.isPresent()) {
-        return cacheEntry.get();
+      Optional<CacheReadEntry> optionalCacheReadEntry = cache.getLayer(layerDigest);
+      if (optionalCacheReadEntry.isPresent()) {
+        return optionalCacheReadEntry.get();
       }
 
       // TODO: Make this exception handling more readable.
