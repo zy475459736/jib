@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.jib.gradle;
 
+import com.google.cloud.tools.jib.frontend.JavaEntrypointConstructor;
 import com.google.cloud.tools.jib.image.ImageFormat;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.common.base.Preconditions;
@@ -33,6 +34,7 @@ import org.gradle.api.tasks.Optional;
 public class ContainerParameters {
 
   private boolean useCurrentTimestamp = false;
+  private List<String> classpath = JavaEntrypointConstructor.defaultClasspath();
   private List<String> jvmFlags = Collections.emptyList();
   private List<String> entrypoint = Collections.emptyList();
   @Nullable private String mainClass;
@@ -54,11 +56,22 @@ public class ContainerParameters {
   @Input
   @Optional
   public List<String> getEntrypoint() {
+    // Gradle doesn't need property interpolation like our Maven plugin
     return entrypoint;
   }
 
   public void setEntrypoint(List<String> entrypoint) {
     this.entrypoint = entrypoint;
+  }
+
+  @Input
+  @Optional
+  public List<String> getClasspath() {
+    return classpath;
+  }
+
+  public void setClasspath(List<String> jvmFlags) {
+    this.classpath = jvmFlags;
   }
 
   @Input

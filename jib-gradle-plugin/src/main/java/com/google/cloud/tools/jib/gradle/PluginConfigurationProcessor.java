@@ -90,7 +90,10 @@ class PluginConfigurationProcessor {
     if (entrypoint.isEmpty()) {
       String mainClass = projectProperties.getMainClass(jibExtension);
       entrypoint =
-          JavaEntrypointConstructor.makeDefaultEntrypoint(jibExtension.getJvmFlags(), mainClass);
+          JavaEntrypointConstructor.makeEntrypoint(
+              jibExtension.getContainer().getClasspath(),
+              jibExtension.getContainer().getJvmFlags(),
+              mainClass);
     } else if (jibExtension.getMainClass() != null || !jibExtension.getJvmFlags().isEmpty()) {
       logger.warn("mainClass and jvmFlags are ignored when entrypoint is specified");
     }

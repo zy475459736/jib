@@ -16,7 +16,9 @@
 
 package com.google.cloud.tools.jib.maven;
 
+import com.google.api.client.util.Joiner;
 import com.google.cloud.tools.jib.JibLogger;
+import com.google.cloud.tools.jib.frontend.JavaEntrypointConstructor;
 import com.google.cloud.tools.jib.plugins.common.AuthProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -26,6 +28,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
@@ -119,6 +122,8 @@ abstract class JibPluginConfiguration extends AbstractMojo {
     @Parameter private boolean useCurrentTimestamp = false;
 
     @Parameter private List<String> entrypoint = Collections.emptyList();
+
+    @Parameter private List<String> classpath = JavaEntrypointConstructor.defaultClasspath();
 
     @Parameter private List<String> jvmFlags = Collections.emptyList();
 
@@ -255,8 +260,28 @@ abstract class JibPluginConfiguration extends AbstractMojo {
     return container.useCurrentTimestamp;
   }
 
+  /**
+   * Return the container entrypoint. If empty then no entrypoint has been configured. Replace any
+   * occurrences of surefire-style late property references to "<code>@{jib.classpath}</code>" to
+   * the configured container classpath.
+   *
+   * @return the entrypoint
+   */
   List<String> getEntrypoint() {
-    return container.entrypoint;
+    if (container.entrypoint.isEmpty()) {
+      return container.entrypoint;
+    }
+    // perform surefire-style late-binding of the classpath
+    String classpath = Joiner.on(':').join(container.classpath);
+    return container
+        .entrypoint
+        .stream()
+        .map(value -> value.replaceAll("@{jib.classpath}", classpath))
+        .collect(Collectors.toList());
+  }
+
+  List<String> getClasspath() {
+    return container.classpath;
   }
 
   List<String> getJvmFlags() {

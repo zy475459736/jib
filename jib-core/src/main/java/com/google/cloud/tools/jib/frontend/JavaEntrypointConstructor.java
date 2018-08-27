@@ -27,14 +27,12 @@ public class JavaEntrypointConstructor {
   public static final String DEFAULT_CLASSES_PATH_ON_IMAGE = "/app/classes/";
   public static final String DEFAULT_DEPENDENCIES_PATH_ON_IMAGE = "/app/libs/";
 
-  public static List<String> makeDefaultEntrypoint(List<String> jvmFlags, String mainClass) {
-    return makeEntrypoint(
-        Arrays.asList(
-            DEFAULT_RESOURCES_PATH_ON_IMAGE,
-            DEFAULT_CLASSES_PATH_ON_IMAGE,
-            DEFAULT_DEPENDENCIES_PATH_ON_IMAGE + "*"),
-        jvmFlags,
-        mainClass);
+  /** Return the default classpath for Jib containerized applications. */
+  public static List<String> defaultClasspath() {
+    return Arrays.asList(
+        JavaEntrypointConstructor.DEFAULT_RESOURCES_PATH_ON_IMAGE,
+        JavaEntrypointConstructor.DEFAULT_CLASSES_PATH_ON_IMAGE,
+        JavaEntrypointConstructor.DEFAULT_DEPENDENCIES_PATH_ON_IMAGE + "/*");
   }
 
   /**
