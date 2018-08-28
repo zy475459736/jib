@@ -276,7 +276,7 @@ abstract class JibPluginConfiguration extends AbstractMojo {
     return container
         .entrypoint
         .stream()
-        .map(value -> value.replaceAll("@{jib.classpath}", classpath))
+        .map(value -> value.replace("@{jib.classpath}", classpath))
         .collect(Collectors.toList());
   }
 
@@ -332,8 +332,18 @@ abstract class JibPluginConfiguration extends AbstractMojo {
   }
 
   @VisibleForTesting
+  void setEntrypoint(List<String> entrypoint) {
+    this.container.entrypoint = entrypoint;
+  }
+
+  @VisibleForTesting
   void setJvmFlags(List<String> jvmFlags) {
     this.jvmFlags = jvmFlags;
+  }
+
+  @VisibleForTesting
+  void setClasspath(List<String> classpath) {
+    this.container.classpath = classpath;
   }
 
   @VisibleForTesting

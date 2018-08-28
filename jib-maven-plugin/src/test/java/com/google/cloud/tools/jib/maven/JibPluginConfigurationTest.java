@@ -88,4 +88,18 @@ public class JibPluginConfigurationTest {
     Assert.assertEquals("OCI", testPluginConfiguration.getFormat());
     Assert.assertEquals(Paths.get("some/path"), testPluginConfiguration.getExtraDirectory());
   }
+
+  @Test
+  public void testGetEntrypoint() {
+    testPluginConfiguration.setEntrypoint(Arrays.asList("echo", "hi"));
+    Assert.assertEquals(Arrays.asList("echo", "hi"), testPluginConfiguration.getEntrypoint());
+  }
+
+  @Test
+  public void testGetEntrypoint_jibClasspath() {
+    testPluginConfiguration.setEntrypoint(Arrays.asList("echo", "@{jib.classpath}"));
+    Assert.assertEquals(
+        Arrays.asList("echo", "/app/resources/:/app/classes/:/app/libs/*"),
+        testPluginConfiguration.getEntrypoint());
+  }
 }
