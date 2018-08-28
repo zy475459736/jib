@@ -363,6 +363,8 @@
           <excludes>
             <exclude>**/*IntegrationTest.java</exclude>
           </excludes>
+          <!-- surefire's stack trace ellision is overly aggressive -->
+          <trimStackTrace>false</trimStackTrace>
         </configuration>
       </plugin>
 
