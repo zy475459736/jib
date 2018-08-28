@@ -153,6 +153,12 @@ public class JavaDockerContextGeneratorTest {
             .setBaseImage(expectedBaseImage)
             .setJvmFlags(expectedJvmFlags)
             .setMainClass(expectedMainClass)
+            .setClasspath(
+                Arrays.asList(
+                    EXPECTED_RESOURCES_PATH,
+                    EXPECTED_CLASSES_PATH,
+                    EXPECTED_DEPENDENCIES_PATH + "*",
+                    "/usr/lib/java/ext/*"))
             .setJavaArguments(expectedJavaArguments)
             .setExposedPorts(exposedPorts)
             .setLabels(expectedLabels)

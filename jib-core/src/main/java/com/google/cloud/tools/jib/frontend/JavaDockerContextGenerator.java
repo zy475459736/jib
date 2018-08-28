@@ -103,6 +103,7 @@ public class JavaDockerContextGenerator {
   @Nullable private String baseImage;
   private List<String> entrypoint = Collections.emptyList();
   private List<String> jvmFlags = Collections.emptyList();
+  private List<String> classpath = JavaEntrypointConstructor.defaultClasspath();
   private String mainClass = "";
   private List<String> javaArguments = Collections.emptyList();
   private List<String> exposedPorts = Collections.emptyList();
@@ -152,7 +153,8 @@ public class JavaDockerContextGenerator {
 
   /**
    * Sets the entrypoint to be used as the {@code ENTRYPOINT}. If not empty, then overrides the
-   * {@link #setJvmFlags(List) jvmFlags} and {@link #setMainClass(String) mainclass}.
+   * {@link #setJvmFlags(List) jvmFlags}, {@link #setMainClass(String) mainclass}, and {@link
+   * #setClasspath(List) classpath}.
    *
    * @param entrypoint the entrypoint.
    * @return this
@@ -170,6 +172,17 @@ public class JavaDockerContextGenerator {
    */
   public JavaDockerContextGenerator setJvmFlags(List<String> jvmFlags) {
     this.jvmFlags = jvmFlags;
+    return this;
+  }
+
+  /**
+   * Sets the JVM classpath to be used in the {@code ENTRYPOINT}.
+   *
+   * @param classpath the classpath.
+   * @return this
+   */
+  public JavaDockerContextGenerator setClasspath(List<String> classpath) {
+    this.classpath = classpath;
     return this;
   }
 
@@ -308,8 +321,7 @@ public class JavaDockerContextGenerator {
             objectMapper.writeValueAsString(
                 !entrypoint.isEmpty()
                     ? entrypoint
-                    : JavaEntrypointConstructor.makeEntrypoint(
-                        JavaEntrypointConstructor.defaultClasspath(), jvmFlags, mainClass)))
+                    : JavaEntrypointConstructor.makeEntrypoint(classpath, jvmFlags, mainClass)))
         .append("\nCMD ")
         .append(objectMapper.writeValueAsString(javaArguments));
     return dockerfile.toString();

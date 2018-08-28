@@ -11,5 +11,5 @@ EXPOSE 2000-2010/udp
 LABEL key1="value" \
       key2="value with\\backslashes\"and\\\\\"\"quotes\"\\" \
       key3="value3"
-ENTRYPOINT ["java","-flag","another\"Flag","-cp","/app/resources/:/app/classes/:/app/libs/*","SomeMainClass"]
+ENTRYPOINT ["java","-flag","another\"Flag","-cp","/app/resources/:/app/classes/:/app/libs/*:/usr/lib/java/ext/*","SomeMainClass"]
 CMD ["arg1","arg2"]
