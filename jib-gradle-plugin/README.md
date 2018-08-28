@@ -197,7 +197,9 @@ Property | Type | Default | Description
 `ports` | `List<String>` | *None* | Ports that the container exposes at runtime (similar to Docker's [EXPOSE](https://docs.docker.com/engine/reference/builder/#expose) instruction).
 `format` | `String` | `Docker` | Use `OCI` to build an [OCI container image](https://www.opencontainers.org/).
 `useCurrentTimestamp` | `boolean` | `false` | By default, Jib wipes all timestamps to guarantee reproducibility. If this parameter is set to `true`, Jib will set the image's creation timestamp to the time of the build, which sacrifices reproducibility for easily being able to tell when your image was created.
+`classpath` | `List<String>` | `/app/resources`, `/app/classes`, `/app/libs/*` | The Java classpath to use.
 `entrypoint` | list | *None* | The executable to be run (similar to Docker's [ENTRYPOINT](https://docs.docker.com/engine/reference/builder/#entrypoint) instruction). If set then `jvmFlags` and `mainClass` are ignored.
+
 
 You can also configure HTTP connection/read timeouts for registry interactions using the `jib.httpTimeout` system property, configured in milliseconds via commandline (the default is `20000`; you can also set it to `0` for infinite timeout):
 
