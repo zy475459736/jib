@@ -94,8 +94,11 @@ class PluginConfigurationProcessor {
               jibExtension.getContainer().getClasspath(),
               jibExtension.getContainer().getJvmFlags(),
               mainClass);
-    } else if (jibExtension.getMainClass() != null || !jibExtension.getJvmFlags().isEmpty()) {
-      logger.warn("mainClass and jvmFlags are ignored when entrypoint is specified");
+    } else if (jibExtension.getMainClass() != null
+        || !jibExtension.getJvmFlags().isEmpty()
+        || !JavaEntrypointConstructor.defaultClasspath()
+            .equals(jibExtension.getContainer().getClasspath())) {
+      logger.warn("mainClass, jvmFlags, and classpath are ignored when entrypoint is specified");
     }
     ContainerConfiguration.Builder containerConfigurationBuilder =
         ContainerConfiguration.builder()
