@@ -203,8 +203,10 @@ public class BuildStepsIntegrationTest {
     ContainerConfiguration containerConfiguration =
         ContainerConfiguration.builder()
             .setEntrypoint(
-                JavaEntrypointConstructor.makeDefaultEntrypoint(
-                    Collections.emptyList(), "HelloWorld"))
+                JavaEntrypointConstructor.makeEntrypoint(
+                    JavaEntrypointConstructor.defaultClasspath(),
+                    Collections.emptyList(),
+                    "HelloWorld"))
             .setProgramArguments(Collections.singletonList("An argument."))
             .setExposedPorts(
                 ExposedPortsParser.parse(Arrays.asList("1000", "2000-2002/tcp", "3000/udp")))

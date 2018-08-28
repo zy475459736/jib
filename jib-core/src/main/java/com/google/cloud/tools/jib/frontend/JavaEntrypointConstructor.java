@@ -32,7 +32,7 @@ public class JavaEntrypointConstructor {
     return Arrays.asList(
         JavaEntrypointConstructor.DEFAULT_RESOURCES_PATH_ON_IMAGE,
         JavaEntrypointConstructor.DEFAULT_CLASSES_PATH_ON_IMAGE,
-        JavaEntrypointConstructor.DEFAULT_DEPENDENCIES_PATH_ON_IMAGE + "/*");
+        JavaEntrypointConstructor.DEFAULT_DEPENDENCIES_PATH_ON_IMAGE + "*");
   }
 
   /**

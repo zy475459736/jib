@@ -308,7 +308,8 @@ public class JavaDockerContextGenerator {
             objectMapper.writeValueAsString(
                 !entrypoint.isEmpty()
                     ? entrypoint
-                    : JavaEntrypointConstructor.makeDefaultEntrypoint(jvmFlags, mainClass)))
+                    : JavaEntrypointConstructor.makeEntrypoint(
+                        JavaEntrypointConstructor.defaultClasspath(), jvmFlags, mainClass)))
         .append("\nCMD ")
         .append(objectMapper.writeValueAsString(javaArguments));
     return dockerfile.toString();

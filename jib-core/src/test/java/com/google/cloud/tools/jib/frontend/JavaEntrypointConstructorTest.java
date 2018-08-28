@@ -25,6 +25,18 @@ import org.junit.Test;
 public class JavaEntrypointConstructorTest {
 
   @Test
+  public void testDefaultClasspath() {
+    String expectedResourcesPath = "/app/resources/";
+    String expectedClassesPath = "/app/classes/";
+    String expectedDependenciesPath = "/app/libs/*";
+
+    List<String> classpath = JavaEntrypointConstructor.defaultClasspath();
+    Assert.assertEquals(
+        Arrays.asList(expectedResourcesPath, expectedClassesPath, expectedDependenciesPath),
+        classpath);
+  }
+
+  @Test
   public void testMakeEntrypoint() {
     String expectedResourcesPath = "/app/resources/";
     String expectedClassesPath = "/app/classes/";
@@ -45,11 +57,6 @@ public class JavaEntrypointConstructorTest {
             "-cp",
             "/app/resources/:/app/classes/:/app/libs/*",
             "SomeMainClass"),
-        entrypoint);
-
-    // Checks that this is also the default entrypoint.
-    Assert.assertEquals(
-        JavaEntrypointConstructor.makeDefaultEntrypoint(expectedJvmFlags, expectedMainClass),
         entrypoint);
   }
 }
