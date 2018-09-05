@@ -40,6 +40,8 @@ dir C:\ProgramData\Docker
 dir C:\ProgramData\Docker\config
 cat C:\ProgramData\Docker\config\daemon.json
 
+restart-service docker
+
 Net stop com.docker.service
 
 docker version
@@ -50,6 +52,8 @@ docker images
 docker pull --platform linux registry:2
 
 Net start com.docker.service
+
+restart-service docker
 
 docker version
 
