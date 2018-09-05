@@ -20,13 +20,13 @@ pushd %USERPROFILE%
 dir /a .docker
 cat .docker\config.json
 cat .docker\daemon.json
-echo > .docker\daemon.json <<EOF
+cat > .docker\daemon.json <<EOF
 {"registry-mirrors":[],"insecure-registries":[], "debug":true, "experimental": true}
 cat .docker\daemon.json
 EOF
 popd
 
-cat C:\ProgramData\Docker\config\daemon.json <<EOF
+cat > C:\ProgramData\Docker\config\daemon.json <<EOF
 {
   "registry-mirrors":[],
   "insecure-registries":[],
