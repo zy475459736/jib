@@ -16,14 +16,13 @@ FOR /f "tokens=*" %%i IN ('docker ps -aq') DO docker rm -vf %%i
 REM Sets the integration testing project.
 set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
-dir /a \etc
-dir /a \etc\docker
-cat \etc\docker\daemon.json
-
 pushd %USERPROFILE%
 dir /a .docker
+cat .docker\daemon.json
 cat .docker\config.json
 popd
+
+docker version
 
 cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
 cd ../jib-plugins-common && call gradlew.bat clean build --info --stacktrace && ^
