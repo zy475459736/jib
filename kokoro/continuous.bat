@@ -18,8 +18,12 @@ set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 pushd %USERPROFILE%
 dir /a .docker
-cat .docker\daemon.json
 cat .docker\config.json
+cat .docker\daemon.json
+echo "{\"registry-mirrors\":[],\"insecure-registries\":[], \"debug\":true, \"experimental\": true}" > .docker\daemon.json
+cat .docker\daemon.json
+restart-service *docker*
+docker-machine restart
 popd
 
 docker version
