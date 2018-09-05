@@ -6,18 +6,24 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
+REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
+set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
+docker-credential-gcr configure-docker
+
 REM Stops any left-over containers.
 FOR /f "tokens=*" %%i IN ('docker ps -aq') DO docker rm -vf %%i
 
 REM Sets the integration testing project.
 set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
-set CLOUDSDK_CORE_DISABLE_USAGE_REPORTING=true
-call gcloud.cmd components install docker-credential-gcr
-@echo on
+dir /a \etc
+dir /a \etc\docker
+cat \etc\docker\daemon.json
 
-set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
-docker-credential-gcr configure-docker
+pushd %USERPROFILE%
+dir /a .docker
+cat .docker\config.json
+popd
 
 cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
 cd ../jib-plugins-common && call gradlew.bat clean build --info --stacktrace && ^
