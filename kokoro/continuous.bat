@@ -4,6 +4,12 @@ REM Java 9 does not work with Mockito mockmaker.
 set JAVA_HOME=c:\program files\java\jdk1.8.0_152
 set PATH=%JAVA_HOME%\bin;%PATH%
 
+dir /a %ProgramFiles%\Docker\Docker
+dir /a %ProgramFiles%\Docker\Docker\Resources
+dir /a %ProgramFiles%\Docker\Docker\Resources\bin
+dir \cygdrive\c\Program Files\Docker
+dir \cygdrive\c\Program Files\Docker\Docker
+dir \cygdrive\c\Program Files\Docker\Docker\Resources\bin
 which docker
 whereis docker
 echo %DOCKER_HOST%
