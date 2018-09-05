@@ -25,11 +25,22 @@ cat .docker\daemon.json
 popd
 
 cat %USERPROFILE%\.docker\daemon.json
+dir C:\ProgramData
+dir C:\ProgramData\Docker
+dir C:\ProgramData\Docker\config
+cat C:\ProgramData\Docker\config\daemon.json
+
+dir \ProgramData
+dir \ProgramData\Docker
+dir \ProgramData\Docker\config
+cat \ProgramData\Docker\config\daemon.json
 
 Net stop com.docker.service
 Net start com.docker.service
 
 docker version
+
+docker pull --platform linux registry:2
 
 cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
 cd ../jib-plugins-common && call gradlew.bat clean build --info --stacktrace && ^
