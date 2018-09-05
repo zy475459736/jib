@@ -4,11 +4,9 @@ REM Java 9 does not work with Mockito mockmaker.
 set JAVA_HOME=c:\program files\java\jdk1.8.0_152
 set PATH=%JAVA_HOME%\bin;%PATH%
 
-dir /a C:\Program Files\Docker\Docker
-dir C:\Program Files\Docker\Docker\Resources
-dir C:\Program Files\Docker\Docker\Resources\bin
+which docker
+whereis docker
 echo %DOCKER_HOST%
-echo %PATH%
 
 cd github/jib
 
