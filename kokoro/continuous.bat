@@ -7,6 +7,7 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 dir /a C:\Program Files\Docker\Docker
 dir C:\Program Files\Docker\Docker\Resources
 dir C:\Program Files\Docker\Docker\Resources\bin
+echo %DOCKER_HOST%
 echo %PATH%
 
 cd github/jib
