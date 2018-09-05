@@ -6,6 +6,8 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
+echo { "experimental": "enabled" } > %USERPROFILE%\.docker\config.json
+
 REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
 set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
 docker-credential-gcr configure-docker
@@ -24,9 +26,9 @@ echo {"registry-mirrors":[], "insecure-registries":[], "debug":true, "experiment
 cat .docker\daemon.json
 popd
 
-cat \ProgramData\Docker\config\daemon.json
+cat C:\ProgramData\Docker\config\daemon.json
 echo {"registry-mirrors":[], "insecure-registries":[], "experimental":true, "hosts":["tcp://0.0.0.0:2375","npipe://"]} > C:\ProgramData\Docker\config\daemon.json
-cat \ProgramData\Docker\config\daemon.json
+cat C:\ProgramData\Docker\config\daemon.json
 
 cat %USERPROFILE%\.docker\daemon.json
 dir C:\ProgramData
@@ -39,6 +41,7 @@ Net start com.docker.service
 
 docker version
 
+docker pull registry:2
 docker pull --platform linux registry:2
 
 cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
