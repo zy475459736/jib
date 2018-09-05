@@ -44,13 +44,16 @@ Net stop com.docker.service
 
 docker version
 
+docker pull microsoft/nanoserver
 docker pull registry:2
+docker images
 docker pull --platform linux registry:2
 
 Net start com.docker.service
 
 docker version
 
+docker images
 docker pull registry:2
 docker pull --platform linux registry:2
 
