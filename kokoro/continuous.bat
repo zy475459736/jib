@@ -22,9 +22,12 @@ cat .docker\config.json
 cat .docker\daemon.json
 echo "{\"registry-mirrors\":[],\"insecure-registries\":[], \"debug\":true, \"experimental\": true}" > .docker\daemon.json
 cat .docker\daemon.json
-restart-service *docker*
-docker-machine restart
 popd
+
+cat %USERPROFILE%\.docker\daemon.json
+
+Net stop com.docker.service
+Net start com.docker.service
 
 docker version
 
