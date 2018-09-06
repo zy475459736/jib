@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 set -x
 
 gcloud components install docker-credential-gcr
@@ -15,6 +15,19 @@ docker-credential-gcr configure-docker
 # Stops any left-over containers.
 docker stop $(docker ps --all --quiet) || true
 docker kill $(docker ps --all --quiet) || true
+
+if [ "${KOKORO_JOB_CLUSTER}" = "MACOS_EXTERNAL" ]; then
+  docker pull gcr.io/distroless/java
+
+  docker system info
+  osascript -e 'quit app "Docker"'
+  docker system info
+  open --background -a Docker
+  killall com.docker # this might actually not be needed
+  # wait for docker to finish coming up
+  while ! docker system info > /dev/null 2>&1; do sleep 1; done
+  exit 0
+fi
 
 # Sets the integration testing project.
 export JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
