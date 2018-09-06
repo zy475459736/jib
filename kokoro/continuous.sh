@@ -20,8 +20,10 @@ docker kill $(docker ps --all --quiet) || true
 export JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 if [ "${KOKORO_JOB_CLUSTER}" = "MACOS_EXTERNAL" ]; then
-  killall com.docker
   osascript -e 'quit app "Docker"'
+  # wait for docker to shutdown
+  while docker system info > /dev/null 2>&1; do sleep 1; done
+
   open --background -a Docker
   # wait for docker to finish coming up
   while ! docker system info > /dev/null 2>&1; do sleep 1; done
