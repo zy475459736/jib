@@ -50,6 +50,8 @@ dir C:\ProgramData\Docker
 dir C:\ProgramData\Docker\config
 cat C:\ProgramData\Docker\config\daemon.json
 
+docker version
+
 sc queryex com.docker.service
 sc query com.docker.service
 sc stop com.docker.service
