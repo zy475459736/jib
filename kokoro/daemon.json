@@ -1,0 +1,6 @@
+{
+  "registry-mirrors":[],
+  "insecure-registries":[],
+  "experimental":true,
+  "hosts":["tcp://0.0.0.0:2375","npipe://"]
+}
