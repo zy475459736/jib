@@ -52,7 +52,7 @@ cat C:\ProgramData\Docker\config\daemon.json
 
 restart-service docker
 
-Net stop com.docker.service
+sc stop com.docker.service
 
 docker version
 
@@ -61,7 +61,7 @@ docker pull registry:2
 docker images
 docker pull --platform linux registry:2
 
-Net start com.docker.service
+sc start com.docker.service
 
 restart-service docker
 
