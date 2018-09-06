@@ -58,7 +58,7 @@ sc stop com.docker.service
 
 :CheckDockerStopped
 sc query com.docker.service
-sc query com.docker.service | find "STOPPED"
+sc query com.docker.service | FINDSTR "STOPPED"
 IF ERRORLEVEL 1 (
   timeout 1
   GOTO CheckDockerStopped
@@ -84,7 +84,7 @@ sc queryex com.docker.service
 
 :CheckDockerRunning
 sc query com.docker.service
-sc query com.docker.service | find "RUNNING"
+sc query com.docker.service | FINDSTR "RUNNING"
 IF ERRORLEVEL 1 {
   timeout 1
   GOTO CheckDockerRunning
