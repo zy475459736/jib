@@ -50,8 +50,6 @@ dir C:\ProgramData\Docker
 dir C:\ProgramData\Docker\config
 cat C:\ProgramData\Docker\config\daemon.json
 
-restart-service docker
-
 sc queryex com.docker.service
 sc query com.docker.service
 sc stop com.docker.service
@@ -60,16 +58,9 @@ sc stop com.docker.service
 sc query com.docker.service
 sc query com.docker.service | FINDSTR "STOPPED"
 IF ERRORLEVEL 1 (
-  timeout 1
+  sleep 1s
   GOTO CheckDockerStopped
 )
-REM for /F "tokens=3 delims=: " %%H in ('sc query "MyServiceName" ^| findstr "        STATE"') do (
-REM  if /I "%%H" NEQ "RUNNING" (
-REM   REM Put your code you want to execute here
-REM   REM For example, the following line
-REM   net start "MyServiceName"
-REM  )
-REM)
 
 docker version
 
@@ -85,8 +76,8 @@ sc queryex com.docker.service
 :CheckDockerRunning
 sc query com.docker.service
 sc query com.docker.service | FINDSTR "RUNNING"
-IF ERRORLEVEL 1 {
-  timeout 1
+IF ERRORLEVEL 1 (
+  sleep 1s
   GOTO CheckDockerRunning
 )
 
