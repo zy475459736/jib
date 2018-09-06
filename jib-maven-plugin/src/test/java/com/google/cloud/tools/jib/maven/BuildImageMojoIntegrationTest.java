@@ -169,6 +169,7 @@ public class BuildImageMojoIntegrationTest {
 
   @Before
   public void setup() throws IOException, InterruptedException {
+    Thread.sleep(3000);
     // Pull distroless to local registry so we can test 'from' credentials
     localRegistry1.pullAndPushToLocal("gcr.io/distroless/java:latest", "distroless/java");
   }
