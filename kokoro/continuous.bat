@@ -52,7 +52,24 @@ cat C:\ProgramData\Docker\config\daemon.json
 
 restart-service docker
 
+sc queryex com.docker.service
+sc query com.docker.service
 sc stop com.docker.service
+
+:CheckDockerStopped
+sc query com.docker.service
+sc query com.docker.service | find "STOPPED"
+IF ERRORLEVEL 1 (
+  timeout 1
+  GOTO CheckDockerStopped
+)
+REM for /F "tokens=3 delims=: " %%H in ('sc query "MyServiceName" ^| findstr "        STATE"') do (
+REM  if /I "%%H" NEQ "RUNNING" (
+REM   REM Put your code you want to execute here
+REM   REM For example, the following line
+REM   net start "MyServiceName"
+REM  )
+REM)
 
 docker version
 
@@ -61,7 +78,17 @@ docker pull registry:2
 docker images
 docker pull --platform linux registry:2
 
+sc queryex com.docker.service
 sc start com.docker.service
+sc queryex com.docker.service
+
+:CheckDockerRunning
+sc query com.docker.service
+sc query com.docker.service | find "RUNNING"
+IF ERRORLEVEL 1 {
+  timeout 1
+  GOTO CheckDockerRunning
+)
 
 restart-service docker
 
