@@ -37,8 +37,19 @@ sc stop com.docker.service
 sc query com.docker.service
 sc query com.docker.service | FINDSTR "STOPPED"
 IF ERRORLEVEL 1 (
-  sleep 1s
+  sleep 3s
   GOTO CheckDockerStopped
+)
+
+sc queryex dockerd
+sc stop dockerd
+
+:CheckDockerDStopped
+sc query dockerd
+sc query dockerd | FINDSTR "STOPPED"
+IF ERRORLEVEL 1 (
+  sleep 3s
+  GOTO CheckDockerDStopped
 )
 
 docker version
@@ -52,14 +63,26 @@ tasklist
 
 sc queryex com.docker.service
 sc start com.docker.service
-sc queryex com.docker.service
 
 :CheckDockerRunning
 sc query com.docker.service
 sc query com.docker.service | FINDSTR "RUNNING"
 IF ERRORLEVEL 1 (
-  sleep 1s
+  sleep 3s
   GOTO CheckDockerRunning
+)
+
+tasklist
+
+sc queryex dockerd
+sc start dockerd
+
+:CheckDockerDRunning
+sc query dockerd
+sc query dockerd | FINDSTR "RUNNING"
+IF ERRORLEVEL 1 (
+  sleep 3s
+  GOTO CheckDockerDRunning
 )
 
 tasklist
