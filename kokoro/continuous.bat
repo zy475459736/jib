@@ -28,6 +28,8 @@ cat %ProgramData%\Docker\config\daemon.json
 COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
 cat %ProgramData%\Docker\config\daemon.json
 
+tasklist
+
 sc queryex com.docker.service
 sc stop com.docker.service
 
@@ -46,6 +48,8 @@ docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
 
+tasklist
+
 sc queryex com.docker.service
 sc start com.docker.service
 sc queryex com.docker.service
@@ -58,12 +62,16 @@ IF ERRORLEVEL 1 (
   GOTO CheckDockerRunning
 )
 
+tasklist
+
 docker version
 docker images
 docker pull microsoft/nanoserver
 docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
+
+tasklist
 
 REM REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
 REM set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
