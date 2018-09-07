@@ -21,8 +21,7 @@ export JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 if [ "${KOKORO_JOB_CLUSTER}" = "MACOS_EXTERNAL" ]; then
   osascript -e 'quit app "Docker"'
-  # wait for docker to shutdown
-  while docker system info > /dev/null 2>&1; do sleep 1; done
+  docker system info || true
   open -a Docker
 
   while ! docker system info > /dev/null 2>&1; do sleep 1; done
