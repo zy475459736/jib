@@ -8,8 +8,8 @@ cd github/jib
 
 docker version
 
-REM REM Stops any left-over containers.
-REM FOR /f "tokens=*" %%i IN ('docker ps -aq') DO docker rm -vf %%i
+REM Stops any left-over containers.
+FOR /f "tokens=*" %%i IN ('docker ps -aq') DO docker rm -vf %%i
 
 REM Sets the integration testing project.
 set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
@@ -41,23 +41,16 @@ IF ERRORLEVEL 1 (
   GOTO CheckDockerStopped
 )
 
-sc queryex dockerd
-sc stop dockerd
-
-:CheckDockerDStopped
-sc query dockerd
-sc query dockerd | FINDSTR "STOPPED"
-IF ERRORLEVEL 1 (
-  sleep 3s
-  GOTO CheckDockerDStopped
-)
-
 docker version
 docker images
 docker pull microsoft/nanoserver
 docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
+
+tasklist
+
+taskkill /im dockerd.exe /f
 
 tasklist
 
@@ -70,19 +63,6 @@ sc query com.docker.service | FINDSTR "RUNNING"
 IF ERRORLEVEL 1 (
   sleep 3s
   GOTO CheckDockerRunning
-)
-
-tasklist
-
-sc queryex dockerd
-sc start dockerd
-
-:CheckDockerDRunning
-sc query dockerd
-sc query dockerd | FINDSTR "RUNNING"
-IF ERRORLEVEL 1 (
-  sleep 3s
-  GOTO CheckDockerDRunning
 )
 
 tasklist
