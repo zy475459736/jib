@@ -23,10 +23,7 @@ if [ "${KOKORO_JOB_CLUSTER}" = "MACOS_EXTERNAL" ]; then
   osascript -e 'quit app "Docker"'
   # wait for docker to shutdown
   while docker system info > /dev/null 2>&1; do sleep 1; done
-
-  open --background -a Docker
-  # wait for docker to finish coming up
-  while ! docker system info > /dev/null 2>&1; do sleep 1; done
+  open -a Docker
 
   docker pull gcr.io/distroless/java
   (cd github/jib/jib-maven-plugin; ./mvnw clean install -P integration-tests -B -U -X)
