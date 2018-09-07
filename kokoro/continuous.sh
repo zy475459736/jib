@@ -25,6 +25,7 @@ if [ "${KOKORO_JOB_CLUSTER}" = "MACOS_EXTERNAL" ]; then
   while docker system info > /dev/null 2>&1; do sleep 1; done
   open -a Docker
 
+  while ! docker system info > /dev/null 2>&1; do sleep 1; done
   docker pull gcr.io/distroless/java
   (cd github/jib/jib-maven-plugin; ./mvnw clean install -P integration-tests -B -U -X)
   exit $?
