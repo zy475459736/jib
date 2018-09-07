@@ -116,7 +116,7 @@ public class ImageToJsonTranslator {
     }
 
     // Adds the history.
-    for (HistoryEntry historyObject : image.getHistory()) {
+    for (HistoryEntry historyObject : image.getHistory().getHistoryEntries()) {
       template.addHistoryEntry(historyObject);
     }
 

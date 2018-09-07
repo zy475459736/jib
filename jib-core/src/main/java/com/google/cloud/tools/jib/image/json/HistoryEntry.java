@@ -61,6 +61,11 @@ public class HistoryEntry implements JsonTemplate {
       return this;
     }
 
+    public Builder unsetComment() {
+      comment = null;
+      return this;
+    }
+
     public Builder setEmptyLayer(Boolean emptyLayer) {
       this.emptyLayer = emptyLayer;
       return this;

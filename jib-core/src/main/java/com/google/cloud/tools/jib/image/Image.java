@@ -32,7 +32,7 @@ public class Image<T extends Layer> {
   public static class Builder<T extends Layer> {
 
     private final ImageLayers.Builder<T> imageLayersBuilder = ImageLayers.builder();
-    private final ImmutableList.Builder<HistoryEntry> historyBuilder = ImmutableList.builder();
+    private final LayerHistory.Builder layerHistoryBuilder = LayerHistory.builder();
     private final ImmutableMap.Builder<String, String> environmentBuilder = ImmutableMap.builder();
     private final ImmutableMap.Builder<String, String> labelsBuilder = ImmutableMap.builder();
 
@@ -160,13 +160,13 @@ public class Image<T extends Layer> {
     }
 
     /**
-     * Adds a history element to the image.
+     * Sets the image's layer history.
      *
-     * @param history the history object to add
+     * @param historyEntries the list of history objects
      * @return this
      */
-    public Builder<T> addHistory(HistoryEntry history) {
-      historyBuilder.add(history);
+    public Builder<T> setHistory(List<HistoryEntry> historyEntries) {
+      layerHistoryBuilder.addAll(historyEntries);
       return this;
     }
 
@@ -174,7 +174,7 @@ public class Image<T extends Layer> {
       return new Image<>(
           created,
           imageLayersBuilder.build(),
-          historyBuilder.build(),
+          layerHistoryBuilder.build(),
           environmentBuilder.build(),
           entrypoint,
           javaArguments,
@@ -195,7 +195,7 @@ public class Image<T extends Layer> {
   private final ImageLayers<T> layers;
 
   /** The commands used to build each layer of the image */
-  private final ImmutableList<HistoryEntry> history;
+  private final LayerHistory history;
 
   /** Environment variable definitions for running the image, in the format {@code NAME=VALUE}. */
   @Nullable private final ImmutableMap<String, String> environment;
@@ -218,7 +218,7 @@ public class Image<T extends Layer> {
   private Image(
       @Nullable Instant created,
       ImageLayers<T> layers,
-      ImmutableList<HistoryEntry> history,
+      LayerHistory history,
       @Nullable ImmutableMap<String, String> environment,
       @Nullable ImmutableList<String> entrypoint,
       @Nullable ImmutableList<String> javaArguments,
@@ -275,7 +275,7 @@ public class Image<T extends Layer> {
     return layers.getLayers();
   }
 
-  public ImmutableList<HistoryEntry> getHistory() {
+  public LayerHistory getHistory() {
     return history;
   }
 }

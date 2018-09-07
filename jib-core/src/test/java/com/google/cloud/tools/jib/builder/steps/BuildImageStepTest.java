@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.nio.file.Paths;
 import java.security.DigestException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import org.junit.Assert;
@@ -99,9 +100,7 @@ public class BuildImageStepTest {
             .addEnvironment(ImmutableMap.of("BASE_ENV", "BASE_ENV_VALUE"))
             .addLabel("base.label", "base.label.value")
             .setWorkingDirectory("/base/working/directory")
-            .addHistory(nonEmptyLayerHistory)
-            .addHistory(emptyLayerHistory)
-            .addHistory(emptyLayerHistory)
+            .setHistory(Arrays.asList(nonEmptyLayerHistory, emptyLayerHistory, emptyLayerHistory))
             .build();
     Mockito.when(mockPullAndCacheBaseImageLayerStep.getFuture())
         .thenReturn(Futures.immediateFuture(testCachedLayer));
@@ -163,9 +162,9 @@ public class BuildImageStepTest {
         image.getLabels());
     Assert.assertEquals("/base/working/directory", image.getWorkingDirectory());
 
-    Assert.assertEquals(image.getHistory().get(0), nonEmptyLayerHistory);
-    Assert.assertEquals(image.getHistory().get(1), emptyLayerHistory);
-    Assert.assertEquals(image.getHistory().get(2), emptyLayerHistory);
+    Assert.assertEquals(
+        Arrays.asList(nonEmptyLayerHistory, emptyLayerHistory, emptyLayerHistory),
+        image.getHistory().getHistoryEntries());
   }
 
   @Test
@@ -196,18 +195,16 @@ public class BuildImageStepTest {
             .build();
 
     // Base layers (1 non-empty propagated, 2 empty propagated, 2 non-empty generated)
-    Assert.assertEquals(image.getHistory().get(0), nonEmptyLayerHistory);
-    Assert.assertEquals(image.getHistory().get(1), emptyLayerHistory);
-    Assert.assertEquals(image.getHistory().get(2), emptyLayerHistory);
-    Assert.assertEquals(image.getHistory().get(3), expectedAddedBaseLayerHistory);
-    Assert.assertEquals(image.getHistory().get(4), expectedAddedBaseLayerHistory);
-
-    // Application layers (3 generated)
-    Assert.assertEquals(image.getHistory().get(5), expectedApplicationLayerHistory);
-    Assert.assertEquals(image.getHistory().get(6), expectedApplicationLayerHistory);
-    Assert.assertEquals(image.getHistory().get(7), expectedApplicationLayerHistory);
-
-    // Should be exactly 8 total
-    Assert.assertEquals(8, image.getHistory().size());
+    Assert.assertEquals(
+        Arrays.asList(
+            nonEmptyLayerHistory,
+            emptyLayerHistory,
+            emptyLayerHistory,
+            expectedAddedBaseLayerHistory,
+            expectedAddedBaseLayerHistory,
+            expectedApplicationLayerHistory,
+            expectedApplicationLayerHistory,
+            expectedApplicationLayerHistory),
+        image.getHistory().getHistoryEntries());
   }
 }

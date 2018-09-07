@@ -181,7 +181,7 @@ public class JsonToImageTranslatorTest {
                 .setAuthor("Jib")
                 .setCreatedBy("jib")
                 .build()),
-        image.getHistory());
+        image.getHistory().getHistoryEntries());
     Assert.assertEquals(Instant.ofEpochSecond(20), image.getCreated());
     Assert.assertEquals(Arrays.asList("some", "entrypoint", "command"), image.getEntrypoint());
     Assert.assertEquals(ImmutableMap.of("VAR1", "VAL1", "VAR2", "VAL2"), image.getEnvironment());
