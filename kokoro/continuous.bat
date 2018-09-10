@@ -36,37 +36,37 @@ REM cat %USERPROFILE%\.docker\daemon.json
 REM COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
 REM cat %USERPROFILE%\.docker\daemon.json
 
-cat %ProgramData%\Docker\config\daemon.json
-COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
-cat %ProgramData%\Docker\config\daemon.json
+REM cat %ProgramData%\Docker\config\daemon.json
+REM COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
+REM cat %ProgramData%\Docker\config\daemon.json
 
-tasklist
+REM tasklist
 
-sc queryex com.docker.service
-sc stop com.docker.service
+REM sc queryex com.docker.service
+REM sc stop com.docker.service
 
-:CheckDockerStopped
-sc query com.docker.service
-sc query com.docker.service | FINDSTR "STOPPED"
-IF ERRORLEVEL 1 (
-  sleep 3s
-  GOTO CheckDockerStopped
-)
+REM :CheckDockerStopped
+REM sc query com.docker.service
+REM sc query com.docker.service | FINDSTR "STOPPED"
+REM IF ERRORLEVEL 1 (
+  REM sleep 3s
+  REM GOTO CheckDockerStopped
+REM )
 
-docker version
-docker images
+REM docker version
+REM docker images
 REM docker pull microsoft/nanoserver
 REM docker rmi microsoft/nanoserver
-docker pull registry:2
-docker pull --platform linux registry:2
+REM docker pull registry:2
+REM docker pull --platform linux registry:2
 
-tasklist
+REM tasklist
 
 taskkill /im dockerd.exe /f
 
 tasklist
 
-net start com.docker.service
+REM net start com.docker.service
 
 REM sc queryex com.docker.service
 REM sc start com.docker.service
@@ -79,11 +79,11 @@ REM   sleep 3s
 REM   GOTO CheckDockerRunning
 REM )
 
-tasklist
+REM tasklist
 
-ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
+REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-dockerd &
+dockerd --experimental &
 
 tasklist
 
