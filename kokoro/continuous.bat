@@ -35,9 +35,9 @@ cat %USERPROFILE%\.docker\config.json
 COPY kokoro\config.json %USERPROFILE%\.docker\config.json
 cat %USERPROFILE%\.docker\config.json
 
-cat %USERPROFILE%\.docker\daemon.json
-COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
-cat %USERPROFILE%\.docker\daemon.json
+REM cat %USERPROFILE%\.docker\daemon.json
+REM COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
+REM cat %USERPROFILE%\.docker\daemon.json
 
 cat %ProgramData%\Docker\config\daemon.json
 COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
@@ -86,7 +86,7 @@ REM tasklist
 
 REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-dockerd --experimental
+REM dockerd --experimental
 
 REM CMD /C START dockerd --experimental
 
