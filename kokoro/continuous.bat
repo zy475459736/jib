@@ -6,18 +6,6 @@ set PATH=%ProgramFiles%\Docker\Docker\resources;%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
-where docker
-whic docker
-whereis docker
-where dockerd
-which dockerd
-whereis dockerd
-
-ls -al "/cygdrive/c/Program Files"
-ls -al "/cygdrive/c/Program Files/Docker"
-ls -al "/cygdrive/c/Program Files/Docker/Docker"
-ls -al "/cygdrive/c/Program Files/Docker/Docker/resources"
-
 docker version
 
 REM Stops any left-over containers.
@@ -28,8 +16,8 @@ set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 docker version
 
-net stop com.docker.service
-sc queryex com.docker.service
+REM net stop com.docker.service
+REM sc queryex com.docker.service
 
 cat %USERPROFILE%\.docker\config.json
 COPY kokoro\config.json %USERPROFILE%\.docker\config.json
@@ -94,7 +82,7 @@ CMD /C START dockerd
 
 Tasklist
 
-sleep 60s
+REM sleep 60s
 
 :CheckDockerUp
 docker info
