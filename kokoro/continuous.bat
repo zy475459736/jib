@@ -86,6 +86,10 @@ REM tasklist
 
 REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
+dockerd
+
+REM Below doesn't work becuase --experimental is given in the daemon.json too.
+REM (Can only be specified either in daemon.json or through the flag.)
 REM dockerd --experimental
 
 REM CMD /C START dockerd --experimental
