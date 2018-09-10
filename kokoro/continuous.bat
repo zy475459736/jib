@@ -6,6 +6,9 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
+dir %ProgramFiles%
+dir %ProgramFiles%\docker
+
 docker version
 
 REM Stops any left-over containers.
@@ -19,14 +22,17 @@ docker version
 cat %USERPROFILE%\.docker\config.json
 COPY kokoro\config.json %USERPROFILE%\.docker\config.json
 cat %USERPROFILE%\.docker\config.json
+chmod 777 %USERPROFILE%\.docker\config.json
 
 cat %USERPROFILE%\.docker\daemon.json
 COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
 cat %USERPROFILE%\.docker\daemon.json
+chmod 777 %USERPROFILE%\.docker\daemon.json
 
 cat %ProgramData%\Docker\config\daemon.json
 COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
 cat %ProgramData%\Docker\config\daemon.json
+chmod 777 %ProgramData%\Docker\config\daemon.json
 
 tasklist
 
@@ -43,8 +49,8 @@ IF ERRORLEVEL 1 (
 
 docker version
 docker images
-docker pull microsoft/nanoserver
-docker rmi microsoft/nanoserver
+REM docker pull microsoft/nanoserver
+REM docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
 
@@ -54,25 +60,31 @@ taskkill /im dockerd.exe /f
 
 tasklist
 
-sc queryex com.docker.service
-sc start com.docker.service
+net start com.docker.service
 
-:CheckDockerRunning
-sc query com.docker.service
-sc query com.docker.service | FINDSTR "RUNNING"
-IF ERRORLEVEL 1 (
-  sleep 3s
-  GOTO CheckDockerRunning
-)
+REM sc queryex com.docker.service
+REM sc start com.docker.service
+
+REM :CheckDockerRunning
+REM sc query com.docker.service
+REM sc query com.docker.service | FINDSTR "RUNNING"
+REM IF ERRORLEVEL 1 (
+REM   sleep 3s
+REM   GOTO CheckDockerRunning
+REM )
 
 tasklist
 
 docker version
 docker images
-docker pull microsoft/nanoserver
-docker rmi microsoft/nanoserver
+REM docker pull microsoft/nanoserver
+REM docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
+
+where dockerd
+
+dockerd
 
 tasklist
 
