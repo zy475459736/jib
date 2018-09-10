@@ -85,9 +85,12 @@ REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
 CMD /C START dockerd --experimental
 
-sleep 30s
-
-Tasklist
+:CheckDockerUp
+docker info
+IF ERRORLEVEL 1 (
+  sleep 3s
+  GOTO CheckDockerUp
+)
 
 docker version
 docker images
@@ -97,13 +100,6 @@ docker pull registry:2
 docker pull --platform linux registry:2
 
 tasklist
-
-:CheckDockerUp
-docker info
-IF ERRORLEVEL 1 (
-  sleep 3s
-  GOTO CheckDockerUp
-)
 
 REM REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
 REM set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
