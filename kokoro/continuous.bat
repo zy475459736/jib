@@ -32,13 +32,13 @@ REM cat %USERPROFILE%\.docker\config.json
 REM COPY kokoro\config.json %USERPROFILE%\.docker\config.json
 REM cat %USERPROFILE%\.docker\config.json
 
-REM cat %USERPROFILE%\.docker\daemon.json
-REM COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
-REM cat %USERPROFILE%\.docker\daemon.json
+cat %USERPROFILE%\.docker\daemon.json
+COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
+cat %USERPROFILE%\.docker\daemon.json
 
-REM cat %ProgramData%\Docker\config\daemon.json
-REM COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
-REM cat %ProgramData%\Docker\config\daemon.json
+cat %ProgramData%\Docker\config\daemon.json
+COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
+cat %ProgramData%\Docker\config\daemon.json
 
 REM tasklist
 
