@@ -6,13 +6,6 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
-where docker
-whereis docker
-which docker
-where dockerd
-whereis dockerd
-which dockerd
-
 ls -al "/cygdrive/c/Program Files"
 ls -al "/cygdrive/c/Program Files/Docker"
 ls -al "/cygdrive/c/Program Files/Docker/Docker"
@@ -84,8 +77,12 @@ REM )
 
 tasklist
 
-ls -al "/cygdrive/c/Program Files/Docker/Docker/resources"
-/cygdrive/c/Program Files/Docker/Docker/resources/dockerd
+ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe"
+/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe
+/cygdrive/c/Program\ Files/Docker/Docker/resources/dockerd.exe
+"/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe"
+%ProgramFiles%\Docker\Docker\resources\dockerd.exe
+C:\Program Files\Docker\Docker\resources\dockerd.exe
 
 docker version
 docker images
