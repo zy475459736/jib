@@ -86,7 +86,7 @@ tasklist
 
 ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-dockerd
+dockerd --tlsverify &
 
 tasklist
 
