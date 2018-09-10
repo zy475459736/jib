@@ -12,21 +12,10 @@ which docker
 where dockerd
 whereis dockerd
 which dockerd
-where dockerd.exe
-whereis dockerd.exe
-which dockerd.exe
 
-ls "/cygdrive/c/Program Files/"
-ls "/cygdrive/c/Program\ Files/"
-ls "/cygdrive/c/Program\ Files/Docker"
-ls "/cygdrive/c/Program\ Files/Docker/Docker"
-C:
-ls "/cygdrive/c/Program Files/"
-ls "/cygdrive/c/Program\ Files/"
-dir %ProgramFiles%
-dir %ProgramFiles%\docker
-dir \Program Files
-T:
+ls -al "/cygdrive/c/Program Files/"
+ls -al "/cygdrive/c/Program Files/Docker"
+ls -al "/cygdrive/c/Program Files/docker"
 
 docker version
 
