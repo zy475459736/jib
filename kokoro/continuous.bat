@@ -6,8 +6,11 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
+C:
 dir %ProgramFiles%
 dir %ProgramFiles%\docker
+dir \Program Files
+T:
 
 docker version
 
@@ -82,9 +85,11 @@ REM docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
 
+C:
 where dockerd
 
 dockerd
+T:
 
 tasklist
 
