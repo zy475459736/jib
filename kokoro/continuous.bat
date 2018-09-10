@@ -2,9 +2,16 @@
 
 REM Java 9 does not work with Mockito mockmaker.
 set JAVA_HOME=c:\program files\java\jdk1.8.0_152
-set PATH=%JAVA_HOME%\bin;%PATH%
+set PATH=%ProgramFiles%\Docker\Docker\resources;%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
+
+where docker
+whic docker
+whereis docker
+where dockerd
+which dockerd
+whereis dockerd
 
 ls -al "/cygdrive/c/Program Files"
 ls -al "/cygdrive/c/Program Files/Docker"
@@ -77,12 +84,11 @@ REM )
 
 tasklist
 
-ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe"
-/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe
-/cygdrive/c/Program\ Files/Docker/Docker/resources/dockerd.exe
-"/cygdrive/c/Program Files/Docker/Docker/resources/dockerd.exe"
-%ProgramFiles%\Docker\Docker\resources\dockerd.exe
-C:\Program Files\Docker\Docker\resources\dockerd.exe
+ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
+
+dockerd
+
+tasklist
 
 docker version
 docker images
