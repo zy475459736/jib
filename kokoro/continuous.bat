@@ -62,9 +62,9 @@ REM docker pull --platform linux registry:2
 
 REM tasklist
 
-taskkill /im dockerd.exe /f
+Taskkill /IM dockerd.exe /F
 
-tasklist
+Tasklist
 
 REM net start com.docker.service
 
@@ -83,9 +83,9 @@ REM tasklist
 
 REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-dockerd --experimental &
+CMD /C START dockerd --experimental
 
-tasklist
+Tasklist
 
 docker version
 docker images
