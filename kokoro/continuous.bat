@@ -13,9 +13,10 @@ where dockerd
 whereis dockerd
 which dockerd
 
-ls -al "/cygdrive/c/Program Files/"
+ls -al "/cygdrive/c/Program Files"
 ls -al "/cygdrive/c/Program Files/Docker"
-ls -al "/cygdrive/c/Program Files/docker"
+ls -al "/cygdrive/c/Program Files/Docker/Docker"
+ls -al "/cygdrive/c/Program Files/Docker/Docker/resources"
 
 docker version
 
@@ -83,18 +84,15 @@ REM )
 
 tasklist
 
+ls -al "/cygdrive/c/Program Files/Docker/Docker/resources"
+/cygdrive/c/Program Files/Docker/Docker/resources/dockerd
+
 docker version
 docker images
 REM docker pull microsoft/nanoserver
 REM docker rmi microsoft/nanoserver
 docker pull registry:2
 docker pull --platform linux registry:2
-
-C:
-where dockerd
-
-dockerd
-T:
 
 tasklist
 
