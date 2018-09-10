@@ -16,11 +16,13 @@ where dockerd.exe
 whereis dockerd.exe
 which dockerd.exe
 
-ls /cygdrive/c/Program\ Files/
-ls /cygdrive/c/Program\ Files/Docker
-ls /cygdrive/c/Program\ Files/Docker/Docker
+ls "/cygdrive/c/Program Files/"
+ls "/cygdrive/c/Program\ Files/"
+ls "/cygdrive/c/Program\ Files/Docker"
+ls "/cygdrive/c/Program\ Files/Docker/Docker"
 C:
-ls /cygdrive/c/Program\ Files/
+ls "/cygdrive/c/Program Files/"
+ls "/cygdrive/c/Program\ Files/"
 dir %ProgramFiles%
 dir %ProgramFiles%\docker
 dir \Program Files
