@@ -86,7 +86,9 @@ REM tasklist
 
 REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-CMD /C START dockerd --experimental
+dockerd --experimental
+
+REM CMD /C START dockerd --experimental
 
 :CheckDockerUp
 docker info
