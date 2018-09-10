@@ -28,9 +28,12 @@ set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 docker version
 
-REM cat %USERPROFILE%\.docker\config.json
-REM COPY kokoro\config.json %USERPROFILE%\.docker\config.json
-REM cat %USERPROFILE%\.docker\config.json
+net stop com.docker.service
+sc queryex com.docker.service
+
+cat %USERPROFILE%\.docker\config.json
+COPY kokoro\config.json %USERPROFILE%\.docker\config.json
+cat %USERPROFILE%\.docker\config.json
 
 cat %USERPROFILE%\.docker\daemon.json
 COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
