@@ -28,20 +28,17 @@ set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 docker version
 
-cat %USERPROFILE%\.docker\config.json
-COPY kokoro\config.json %USERPROFILE%\.docker\config.json
-cat %USERPROFILE%\.docker\config.json
-chmod 777 %USERPROFILE%\.docker\config.json
+REM cat %USERPROFILE%\.docker\config.json
+REM COPY kokoro\config.json %USERPROFILE%\.docker\config.json
+REM cat %USERPROFILE%\.docker\config.json
 
-cat %USERPROFILE%\.docker\daemon.json
-COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
-cat %USERPROFILE%\.docker\daemon.json
-chmod 777 %USERPROFILE%\.docker\daemon.json
+REM cat %USERPROFILE%\.docker\daemon.json
+REM COPY kokoro\daemon-user.json %USERPROFILE%\.docker\daemon.json
+REM cat %USERPROFILE%\.docker\daemon.json
 
 cat %ProgramData%\Docker\config\daemon.json
 COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
 cat %ProgramData%\Docker\config\daemon.json
-chmod 777 %ProgramData%\Docker\config\daemon.json
 
 tasklist
 
@@ -86,7 +83,7 @@ tasklist
 
 ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
-dockerd --tlsverify &
+dockerd &
 
 tasklist
 
