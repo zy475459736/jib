@@ -6,6 +6,16 @@ set PATH=%JAVA_HOME%\bin;%PATH%
 
 cd github/jib
 
+where docker
+whereis docker
+which docker
+where dockerd
+whereis dockerd
+which dockerd
+where dockerd.exe
+whereis dockerd.exe
+which dockerd.exe
+
 C:
 dir %ProgramFiles%
 dir %ProgramFiles%\docker
