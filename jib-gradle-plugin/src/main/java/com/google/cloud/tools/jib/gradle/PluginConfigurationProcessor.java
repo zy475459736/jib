@@ -25,21 +25,17 @@ import com.google.cloud.tools.jib.configuration.credentials.Credential;
 import com.google.cloud.tools.jib.frontend.CredentialRetrieverFactory;
 import com.google.cloud.tools.jib.frontend.ExposedPortsParser;
 import com.google.cloud.tools.jib.frontend.JavaEntrypointConstructor;
+import com.google.cloud.tools.jib.global.JibSystemProperties;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.image.InvalidImageReferenceException;
 import com.google.cloud.tools.jib.plugins.common.ConfigurationPropertyValidator;
 import com.google.cloud.tools.jib.plugins.common.DefaultCredentialRetrievers;
-import com.google.cloud.tools.jib.registry.RegistryClient;
 import java.time.Instant;
 import java.util.List;
-import javax.annotation.Nullable;
-import org.gradle.api.GradleException;
+import java.util.Optional;
 
 /** Configures and provides builders for the image building tasks. */
 class PluginConfigurationProcessor {
-
-  /** {@code User-Agent} header suffix to send to the registry. */
-  private static final String USER_AGENT_SUFFIX = "jib-gradle-plugin";
 
   /**
    * Sets up {@link BuildConfiguration} that is common among the image building tasks. This includes
@@ -54,32 +50,31 @@ class PluginConfigurationProcessor {
    */
   static PluginConfigurationProcessor processCommonConfiguration(
       JibLogger logger, JibExtension jibExtension, GradleProjectProperties projectProperties)
-      throws InvalidImageReferenceException {
+      throws InvalidImageReferenceException, NumberFormatException {
     jibExtension.handleDeprecatedParameters(logger);
-    ConfigurationPropertyValidator.checkHttpTimeoutProperty(GradleException::new);
+    JibSystemProperties.checkHttpTimeoutProperty();
 
     // TODO: Instead of disabling logging, have authentication credentials be provided
     GradleJibLogger.disableHttpLogging();
-    RegistryClient.setUserAgentSuffix(USER_AGENT_SUFFIX);
 
     ImageReference baseImage = ImageReference.parse(jibExtension.getBaseImage());
 
-    if (Boolean.getBoolean("sendCredentialsOverHttp")) {
+    if (JibSystemProperties.isSendCredentialsOverHttpEnabled()) {
       logger.warn(
           "Authentication over HTTP is enabled. It is strongly recommended that you do not enable "
               + "this on a public network!");
     }
     DefaultCredentialRetrievers defaultCredentialRetrievers =
         DefaultCredentialRetrievers.init(CredentialRetrieverFactory.forImage(baseImage, logger));
-    Credential fromCredential =
+    Optional<Credential> optionalFromCredential =
         ConfigurationPropertyValidator.getImageCredential(
             logger,
             "jib.from.auth.username",
             "jib.from.auth.password",
             jibExtension.getFrom().getAuth());
-    if (fromCredential != null) {
-      defaultCredentialRetrievers.setKnownCredential(fromCredential, "jib.from.auth");
-    }
+    optionalFromCredential.ifPresent(
+        fromCredential ->
+            defaultCredentialRetrievers.setKnownCredential(fromCredential, "jib.from.auth"));
     defaultCredentialRetrievers.setCredentialHelperSuffix(jibExtension.getFrom().getCredHelper());
 
     ImageConfiguration.Builder baseImageConfigurationBuilder =
@@ -97,6 +92,7 @@ class PluginConfigurationProcessor {
     ContainerConfiguration.Builder containerConfigurationBuilder =
         ContainerConfiguration.builder()
             .setEntrypoint(entrypoint)
+            .setEnvironment(jibExtension.getEnvironment())
             .setProgramArguments(jibExtension.getArgs())
             .setExposedPorts(ExposedPortsParser.parse(jibExtension.getExposedPorts()))
             .setLabels(jibExtension.getLabels());
@@ -108,7 +104,7 @@ class PluginConfigurationProcessor {
 
     BuildConfiguration.Builder buildConfigurationBuilder =
         BuildConfiguration.builder(logger)
-            .setCreatedBy("jib-gradle-plugin")
+            .setToolName(GradleProjectProperties.TOOL_NAME)
             .setAllowInsecureRegistries(jibExtension.getAllowInsecureRegistries())
             .setLayerConfigurations(
                 projectProperties.getJavaLayerConfigurations().getLayerConfigurations());
@@ -125,23 +121,23 @@ class PluginConfigurationProcessor {
         buildConfigurationBuilder,
         baseImageConfigurationBuilder,
         containerConfigurationBuilder,
-        fromCredential);
+        optionalFromCredential.isPresent());
   }
 
   private final BuildConfiguration.Builder buildConfigurationBuilder;
   private final ImageConfiguration.Builder baseImageConfigurationBuilder;
   private final ContainerConfiguration.Builder containerConfigurationBuilder;
-  @Nullable private final Credential baseImageCredential;
+  private final boolean isBaseImageCredentialPresent;
 
   private PluginConfigurationProcessor(
       BuildConfiguration.Builder buildConfigurationBuilder,
       ImageConfiguration.Builder baseImageConfigurationBuilder,
       ContainerConfiguration.Builder containerConfigurationBuilder,
-      @Nullable Credential baseImageCredential) {
+      boolean isBaseImageCredentialPresent) {
     this.buildConfigurationBuilder = buildConfigurationBuilder;
     this.baseImageConfigurationBuilder = baseImageConfigurationBuilder;
     this.containerConfigurationBuilder = containerConfigurationBuilder;
-    this.baseImageCredential = baseImageCredential;
+    this.isBaseImageCredentialPresent = isBaseImageCredentialPresent;
   }
 
   BuildConfiguration.Builder getBuildConfigurationBuilder() {
@@ -156,8 +152,7 @@ class PluginConfigurationProcessor {
     return containerConfigurationBuilder;
   }
 
-  @Nullable
-  Credential getBaseImageCredential() {
-    return baseImageCredential;
+  boolean isBaseImageCredentialPresent() {
+    return isBaseImageCredentialPresent;
   }
 }

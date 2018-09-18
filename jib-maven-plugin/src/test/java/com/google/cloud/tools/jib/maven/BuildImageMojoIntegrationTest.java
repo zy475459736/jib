@@ -239,7 +239,7 @@ public class BuildImageMojoIntegrationTest {
   }
 
   @Test
-  public void testExecute_defaultTarget() {
+  public void testExecute_defaultTarget() throws IOException {
     // Test error when 'to' is missing
     try {
       Verifier verifier = new Verifier(defaultTargetTestProject.getProjectRoot().toString());
@@ -262,7 +262,7 @@ public class BuildImageMojoIntegrationTest {
       throws IOException, InterruptedException, VerificationException {
     String targetImage = "localhost:6000/compleximage:maven" + System.nanoTime();
     Assert.assertEquals(
-        "Hello, world. An argument.\nfoo\ncat\n-Xms512m\n-Xdebug\n",
+        "Hello, world. An argument.\nfoo\ncat\n-Xms512m\n-Xdebug\nenvvalue1\nenvvalue2\n",
         buildAndRunComplex(targetImage, "testuser2", "testpassword2", localRegistry2));
   }
 
@@ -271,7 +271,7 @@ public class BuildImageMojoIntegrationTest {
       throws IOException, InterruptedException, VerificationException {
     String targetImage = "localhost:5000/compleximage:maven" + System.nanoTime();
     Assert.assertEquals(
-        "Hello, world. An argument.\nfoo\ncat\n-Xms512m\n-Xdebug\n",
+        "Hello, world. An argument.\nfoo\ncat\n-Xms512m\n-Xdebug\nenvvalue1\nenvvalue2\n",
         buildAndRunComplex(targetImage, "testuser", "testpassword", localRegistry1));
   }
 

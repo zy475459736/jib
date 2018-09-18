@@ -16,9 +16,6 @@ set JIB_INTEGRATION_TESTING_PROJECT=jib-integration-testing
 
 docker version
 
-REM net stop com.docker.service
-REM sc queryex com.docker.service
-
 cat %USERPROFILE%\.docker\config.json
 COPY kokoro\config.json %USERPROFILE%\.docker\config.json
 cat %USERPROFILE%\.docker\config.json
@@ -31,48 +28,9 @@ cat %ProgramData%\Docker\config\daemon.json
 COPY kokoro\daemon.json %ProgramData%\Docker\config\daemon.json
 cat %ProgramData%\Docker\config\daemon.json
 
-REM tasklist
-
-REM sc queryex com.docker.service
-REM sc stop com.docker.service
-
-REM :CheckDockerStopped
-REM sc query com.docker.service
-REM sc query com.docker.service | FINDSTR "STOPPED"
-REM IF ERRORLEVEL 1 (
-  REM sleep 3s
-  REM GOTO CheckDockerStopped
-REM )
-
-REM docker version
-REM docker images
-REM docker pull microsoft/nanoserver
-REM docker rmi microsoft/nanoserver
-REM docker pull registry:2
-REM docker pull --platform linux registry:2
-
-REM tasklist
-
 Taskkill /IM dockerd.exe /F
 
 Tasklist
-
-REM net start com.docker.service
-
-REM sc queryex com.docker.service
-REM sc start com.docker.service
-
-REM :CheckDockerRunning
-REM sc query com.docker.service
-REM sc query com.docker.service | FINDSTR "RUNNING"
-REM IF ERRORLEVEL 1 (
-REM   sleep 3s
-REM   GOTO CheckDockerRunning
-REM )
-
-REM tasklist
-
-REM ls -al "/cygdrive/c/Program Files/Docker/Docker/resources/"
 
 REM Below doesn't work becuase --experimental is given in the daemon.json too.
 REM (Can only be specified either in daemon.json or through the flag.)
@@ -91,22 +49,20 @@ IF ERRORLEVEL 1 (
   GOTO CheckDockerUp
 )
 
-docker version
-docker images
-REM docker pull microsoft/nanoserver
-REM docker rmi microsoft/nanoserver
-docker pull registry:2
-docker pull --platform linux registry:2
+REM docker version
+REM docker images
+REM docker pull registry:2
+REM docker pull --platform linux registry:2
 
 tasklist
 
-REM REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
-REM set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
-REM docker-credential-gcr configure-docker
+REM docker-credential-gcr uses GOOGLE_APPLICATION_CREDENTIALS as the credentials key file
+set GOOGLE_APPLICATION_CREDENTIALS=%KOKORO_KEYSTORE_DIR%\72743_jib_integration_testing_key
+docker-credential-gcr configure-docker
 
-REM cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
-REM cd ../jib-plugins-common && call gradlew.bat clean build --info --stacktrace && ^
-REM cd ../jib-maven-plugin && call mvnw.cmd clean install -P integration-tests -B -U -X && ^
-REM cd ../jib-gradle-plugin && call gradlew.bat clean build integrationTest --info --stacktrace
+cd jib-core && call gradlew.bat clean build integrationTest --info --stacktrace && ^
+cd ../jib-plugins-common && call gradlew.bat clean build --info --stacktrace && ^
+cd ../jib-maven-plugin && call mvnw.cmd clean install -P integration-tests -B -U -X && ^
+cd ../jib-gradle-plugin && call gradlew.bat clean build integrationTest --info --stacktrace
 
 exit /b %ERRORLEVEL%
