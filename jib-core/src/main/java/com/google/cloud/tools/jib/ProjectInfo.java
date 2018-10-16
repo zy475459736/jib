@@ -25,8 +25,5 @@ public class ProjectInfo {
   /** Link to file an issue against the GitHub repository. */
   public static final String GITHUB_NEW_ISSUE_URL = GITHUB_URL + "/issues/new";
 
-  /** The project version. */
-  public static final String VERSION = ProjectInfo.class.getPackage().getImplementationVersion();
-
   private ProjectInfo() {}
 }

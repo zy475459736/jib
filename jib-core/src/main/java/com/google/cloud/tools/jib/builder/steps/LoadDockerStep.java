@@ -18,20 +18,14 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.async.AsyncStep;
 import com.google.cloud.tools.jib.async.NonBlockingSteps;
-import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.docker.ImageToTarballTranslator;
 import com.google.cloud.tools.jib.event.events.LogEvent;
-import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.ImageReference;
 import com.google.cloud.tools.jib.image.Layer;
-import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
-import com.google.cloud.tools.jib.image.json.ImageToJsonTranslator;
-import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -40,26 +34,23 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /** Adds image layers to a tarball and loads into Docker daemon. */
-class LoadDockerStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorDigest> {
+class LoadDockerStep implements AsyncStep<Void>, Callable<Void> {
 
-  private final DockerClient dockerClient;
   private final BuildConfiguration buildConfiguration;
   private final PullAndCacheBaseImageLayersStep pullAndCacheBaseImageLayersStep;
   private final ImmutableList<BuildAndCacheApplicationLayerStep> buildAndCacheApplicationLayerSteps;
   private final BuildImageStep buildImageStep;
 
   private final ListeningExecutorService listeningExecutorService;
-  private final ListenableFuture<DescriptorDigest> listenableFuture;
+  private final ListenableFuture<Void> listenableFuture;
 
   LoadDockerStep(
       ListeningExecutorService listeningExecutorService,
-      DockerClient dockerClient,
       BuildConfiguration buildConfiguration,
       PullAndCacheBaseImageLayersStep pullAndCacheBaseImageLayersStep,
       ImmutableList<BuildAndCacheApplicationLayerStep> buildAndCacheApplicationLayerSteps,
       BuildImageStep buildImageStep) {
     this.listeningExecutorService = listeningExecutorService;
-    this.dockerClient = dockerClient;
     this.buildConfiguration = buildConfiguration;
     this.pullAndCacheBaseImageLayersStep = pullAndCacheBaseImageLayersStep;
     this.buildAndCacheApplicationLayerSteps = buildAndCacheApplicationLayerSteps;
@@ -72,12 +63,12 @@ class LoadDockerStep implements AsyncStep<DescriptorDigest>, Callable<Descriptor
   }
 
   @Override
-  public ListenableFuture<DescriptorDigest> getFuture() {
+  public ListenableFuture<Void> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public DescriptorDigest call() throws ExecutionException, InterruptedException {
+  public Void call() throws ExecutionException, InterruptedException {
     ImmutableList.Builder<ListenableFuture<?>> dependenciesBuilder = ImmutableList.builder();
     for (PullAndCacheBaseImageLayerStep pullAndCacheBaseImageLayerStep :
         NonBlockingSteps.get(pullAndCacheBaseImageLayersStep)) {
@@ -93,7 +84,7 @@ class LoadDockerStep implements AsyncStep<DescriptorDigest>, Callable<Descriptor
         .get();
   }
 
-  private DescriptorDigest afterPushBaseImageLayerFuturesFuture()
+  private Void afterPushBaseImageLayerFuturesFuture()
       throws ExecutionException, InterruptedException, IOException {
     Image<Layer> image = NonBlockingSteps.get(NonBlockingSteps.get(buildImageStep));
     ImageReference targetImageReference =
@@ -103,6 +94,7 @@ class LoadDockerStep implements AsyncStep<DescriptorDigest>, Callable<Descriptor
     buildConfiguration
         .getEventDispatcher()
         .dispatch(LogEvent.lifecycle("Loading to Docker daemon..."));
+    DockerClient dockerClient = new DockerClient();
     dockerClient.load(new ImageToTarballTranslator(image).toTarballBlob(targetImageReference));
 
     // Tags the image with all the additional tags, skipping the one 'docker load' already loaded.
@@ -114,18 +106,6 @@ class LoadDockerStep implements AsyncStep<DescriptorDigest>, Callable<Descriptor
       dockerClient.tag(targetImageReference, targetImageReference.withTag(tag));
     }
 
-    // TODO: Consolide image digest generation with PushImageStep and WriteTarFileStep.
-    // Gets the image manifest to generate the image digest.
-    ImageToJsonTranslator imageToJsonTranslator = new ImageToJsonTranslator(image);
-    BlobDescriptor containerConfigurationBlobDescriptor =
-        imageToJsonTranslator
-            .getContainerConfigurationBlob()
-            .writeTo(ByteStreams.nullOutputStream());
-    BuildableManifestTemplate manifestTemplate =
-        imageToJsonTranslator.getManifestTemplate(
-            buildConfiguration.getTargetFormat(), containerConfigurationBlobDescriptor);
-    return JsonTemplateMapper.toBlob(manifestTemplate)
-        .writeTo(ByteStreams.nullOutputStream())
-        .getDigest();
+    return null;
   }
 }

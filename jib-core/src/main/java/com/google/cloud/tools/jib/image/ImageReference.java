@@ -16,7 +16,6 @@
 
 package com.google.cloud.tools.jib.image;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -155,10 +154,6 @@ public class ImageReference {
    */
   public static ImageReference of(
       @Nullable String registry, String repository, @Nullable String tag) {
-    Preconditions.checkArgument(Strings.isNullOrEmpty(registry) || isValidRegistry(registry));
-    Preconditions.checkArgument(isValidRepository(repository));
-    Preconditions.checkArgument(Strings.isNullOrEmpty(tag) || isValidTag(tag));
-
     if (Strings.isNullOrEmpty(registry)) {
       registry = DOCKER_HUB_REGISTRY;
     }
@@ -198,7 +193,7 @@ public class ImageReference {
    * @return {@code true} if is a valid tag; {@code false} otherwise
    */
   public static boolean isValidTag(String tag) {
-    return tag.matches(TAG_REGEX) || tag.matches(DescriptorDigest.DIGEST_REGEX);
+    return tag.matches(TAG_REGEX);
   }
 
   /**
@@ -262,16 +257,6 @@ public class ImageReference {
   }
 
   /**
-   * Returns {@code true} if the {@link ImageReference} uses a SHA-256 digest as its tag; {@code
-   * false} if not.
-   *
-   * @return {@code true} if tag is a SHA-256 digest; {@code false} if not
-   */
-  public boolean isTagDigest() {
-    return tag.matches(DescriptorDigest.DIGEST_REGEX);
-  }
-
-  /**
    * Gets an {@link ImageReference} with the same registry and repository, but a different tag.
    *
    * @param newTag the new tag
@@ -282,8 +267,7 @@ public class ImageReference {
   }
 
   /**
-   * Stringifies the {@link ImageReference}. When the tag is a digest, it is prepended with the at
-   * {@code @} symbol instead of a colon {@code :}.
+   * Stringifies the {@link ImageReference}.
    *
    * @return the image reference in Docker-readable format (inverse of {@link #parse})
    */
@@ -306,8 +290,7 @@ public class ImageReference {
 
     // Use tag if not the default tag.
     if (!DEFAULT_TAG.equals(tag)) {
-      // Append with "@tag" instead of ":tag" if tag is a digest
-      referenceString.append(isTagDigest() ? '@' : ':').append(tag);
+      referenceString.append(':').append(tag);
     }
 
     return referenceString.toString();

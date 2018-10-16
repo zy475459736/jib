@@ -19,17 +19,11 @@ package com.google.cloud.tools.jib.plugins.common;
 import com.google.cloud.tools.jib.configuration.credentials.Credential;
 import com.google.cloud.tools.jib.configuration.credentials.CredentialRetriever;
 import com.google.cloud.tools.jib.frontend.CredentialRetrieverFactory;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -38,8 +32,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 /** Tests for {@link DefaultCredentialRetrievers}. */
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultCredentialRetrieversTest {
-
-  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   @Mock private CredentialRetrieverFactory mockCredentialRetrieverFactory;
   @Mock private CredentialRetriever mockDockerCredentialHelperCredentialRetriever;
@@ -67,7 +59,7 @@ public class DefaultCredentialRetrieversTest {
   }
 
   @Test
-  public void testInitAsList() throws FileNotFoundException {
+  public void testInitAsList() {
     List<CredentialRetriever> credentialRetrievers =
         DefaultCredentialRetrievers.init(mockCredentialRetrieverFactory).asList();
     Assert.assertEquals(
@@ -77,12 +69,12 @@ public class DefaultCredentialRetrieversTest {
   }
 
   @Test
-  public void testInitAsList_all() throws FileNotFoundException {
+  public void testInitAsList_all() {
     List<CredentialRetriever> credentialRetrievers =
         DefaultCredentialRetrievers.init(mockCredentialRetrieverFactory)
             .setKnownCredential(knownCredential, "credentialSource")
             .setInferredCredential(inferredCredential, "inferredCredentialSource")
-            .setCredentialHelper("credentialHelperSuffix")
+            .setCredentialHelperSuffix("credentialHelperSuffix")
             .asList();
     Assert.assertEquals(
         Arrays.asList(
@@ -98,33 +90,5 @@ public class DefaultCredentialRetrieversTest {
         .known(inferredCredential, "inferredCredentialSource");
     Mockito.verify(mockCredentialRetrieverFactory)
         .dockerCredentialHelper("docker-credential-credentialHelperSuffix");
-  }
-
-  @Test
-  public void testInitAsList_credentialHelperPath() throws IOException {
-    Path fakeCredentialHelperPath = temporaryFolder.newFile("fake-credHelper").toPath();
-    DefaultCredentialRetrievers defaultCredentialRetrievers =
-        DefaultCredentialRetrievers.init(mockCredentialRetrieverFactory)
-            .setCredentialHelper(fakeCredentialHelperPath.toString());
-
-    List<CredentialRetriever> credentialRetrievers = defaultCredentialRetrievers.asList();
-    Assert.assertEquals(
-        Arrays.asList(
-            mockDockerCredentialHelperCredentialRetriever,
-            mockInferCredentialHelperCredentialRetriever,
-            mockDockerConfigCredentialRetriever),
-        credentialRetrievers);
-    Mockito.verify(mockCredentialRetrieverFactory)
-        .dockerCredentialHelper(fakeCredentialHelperPath.toString());
-
-    Files.delete(fakeCredentialHelperPath);
-    try {
-      defaultCredentialRetrievers.asList();
-      Assert.fail("Expected FileNotFoundException");
-    } catch (FileNotFoundException ex) {
-      Assert.assertEquals(
-          "Specified credential helper was not found: " + fakeCredentialHelperPath,
-          ex.getMessage());
-    }
   }
 }

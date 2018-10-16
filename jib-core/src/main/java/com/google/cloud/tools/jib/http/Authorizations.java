@@ -36,7 +36,10 @@ public class Authorizations {
    * @return an {@link Authorization} with a {@code Basic} credentials
    */
   public static Authorization withBasicCredentials(String username, String secret) {
-    String credentials = username + ":" + secret;
+//    if(username.equalsIgnoreCase("dockeryard.ppdaicorp.com")){
+//      return new Authorization(username,secret);
+//    }
+    String credentials = username + ":" + secret;//todo
     String token = Base64.encodeBase64String(credentials.getBytes(StandardCharsets.UTF_8));
     return new Authorization("Basic", token);
   }

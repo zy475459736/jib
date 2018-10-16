@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -39,7 +38,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -67,69 +65,29 @@ public class MavenLayerConfigurationsTest {
         expectedPaths, entries, LayerEntry::getAbsoluteExtractionPathString);
   }
 
-  private static void assertNonDefaultAppRoot(JavaLayerConfigurations configuration) {
-    assertExtractionPathsUnordered(
-        Arrays.asList(
-            "/my/app/libs/dependency-1.0.0.jar",
-            "/my/app/libs/libraryA.jar",
-            "/my/app/libs/libraryB.jar"),
-        configuration.getDependencyLayerEntries());
-    assertExtractionPathsUnordered(
-        Arrays.asList("/my/app/libs/dependencyX-1.0.0-SNAPSHOT.jar"),
-        configuration.getSnapshotDependencyLayerEntries());
-    assertExtractionPathsUnordered(
-        Arrays.asList(
-            "/my/app/resources/directory",
-            "/my/app/resources/directory/somefile",
-            "/my/app/resources/package",
-            "/my/app/resources/resourceA",
-            "/my/app/resources/resourceB",
-            "/my/app/resources/world"),
-        configuration.getResourceLayerEntries());
-    assertExtractionPathsUnordered(
-        Arrays.asList(
-            "/my/app/classes/HelloWorld.class",
-            "/my/app/classes/directory",
-            "/my/app/classes/package",
-            "/my/app/classes/package/some.class",
-            "/my/app/classes/some.class"),
-        configuration.getClassLayerEntries());
-    assertExtractionPathsUnordered(
-        Arrays.asList("/a", "/a/b", "/a/b/bar", "/c", "/c/cat", "/foo"),
-        configuration.getExtraFilesLayerEntries());
-  }
-
-  @Rule public final TestRepository testRepository = new TestRepository();
-  @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+  @Rule public TestRepository testRepository = new TestRepository();
 
   @Mock private MavenProject mockMavenProject;
   @Mock private Build mockBuild;
 
-  private Path extraFilesDirectory;
-
   @Before
-  public void setUp() throws URISyntaxException, IOException {
+  public void setUp() throws URISyntaxException {
+    Path sourcePath = Paths.get(Resources.getResource("application/source").toURI());
     Path outputPath = Paths.get(Resources.getResource("application/output").toURI());
 
     Mockito.when(mockMavenProject.getBuild()).thenReturn(mockBuild);
+    Mockito.when(mockBuild.getSourceDirectory()).thenReturn(sourcePath.toString());
     Mockito.when(mockBuild.getOutputDirectory()).thenReturn(outputPath.toString());
 
     Set<Artifact> artifacts =
         ImmutableSet.of(
             makeArtifact(Paths.get("application", "dependencies", "libraryB.jar")),
             makeArtifact(Paths.get("application", "dependencies", "libraryA.jar")),
-            // Maven reads and populates "Artifacts" with its own processing, so read some from a
-            // repository
+            // maven reads and populates "Artifacts" with it's own processing, so read some from
+            // a repository
             testRepository.findArtifact("com.test", "dependency", "1.0.0"),
             testRepository.findArtifact("com.test", "dependencyX", "1.0.0-SNAPSHOT"));
     Mockito.when(mockMavenProject.getArtifacts()).thenReturn(artifacts);
-
-    Path emptyDirectory =
-        Paths.get(Resources.getResource("webapp").toURI())
-            .resolve("final-name/WEB-INF/classes/empty_dir");
-    Files.createDirectories(emptyDirectory);
-
-    extraFilesDirectory = Paths.get(Resources.getResource("layer").toURI());
   }
 
   @Test
@@ -147,14 +105,12 @@ public class MavenLayerConfigurationsTest {
         ImmutableList.of(
             applicationDirectory.resolve("output/directory"),
             applicationDirectory.resolve("output/directory/somefile"),
-            applicationDirectory.resolve("output/package"),
             applicationDirectory.resolve("output/resourceA"),
             applicationDirectory.resolve("output/resourceB"),
             applicationDirectory.resolve("output/world"));
     ImmutableList<Path> expectedClassesFiles =
         ImmutableList.of(
             applicationDirectory.resolve("output/HelloWorld.class"),
-            applicationDirectory.resolve("output/directory"),
             applicationDirectory.resolve("output/package"),
             applicationDirectory.resolve("output/package/some.class"),
             applicationDirectory.resolve("output/some.class"));
@@ -174,7 +130,9 @@ public class MavenLayerConfigurationsTest {
   }
 
   @Test
-  public void test_extraFiles() throws IOException {
+  public void test_extraFiles() throws URISyntaxException, IOException {
+    Path extraFilesDirectory = Paths.get(Resources.getResource("layer").toURI());
+
     AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/app");
     JavaLayerConfigurations javaLayerConfigurations =
         MavenLayerConfigurations.getForProject(mockMavenProject, extraFilesDirectory, appRoot);
@@ -193,150 +151,45 @@ public class MavenLayerConfigurationsTest {
   }
 
   @Test
-  public void testGetForProject_nonDefaultAppRoot() throws IOException {
-    AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
-    JavaLayerConfigurations configuration =
-        MavenLayerConfigurations.getForProject(mockMavenProject, extraFilesDirectory, appRoot);
-
-    assertNonDefaultAppRoot(configuration);
-  }
-
-  private Artifact makeArtifact(Path path) {
-    Artifact artifact = Mockito.mock(Artifact.class);
-    Mockito.when(artifact.getFile()).thenReturn(path.toFile());
-    return artifact;
-  }
-
-  @Test
-  public void testGetForWarProject_nonDefaultAppRoot() throws URISyntaxException, IOException {
-    Path outputPath = Paths.get(Resources.getResource("webapp").toURI());
-    Mockito.when(mockMavenProject.getPackaging()).thenReturn("war");
-    Mockito.when(mockBuild.getDirectory()).thenReturn(outputPath.toString());
-    Mockito.when(mockBuild.getFinalName()).thenReturn("final-name");
+  public void testGetForProject_nonDefaultAppRoot() throws URISyntaxException, IOException {
+    Path extraFilesDirectory = Paths.get(Resources.getResource("layer").toURI());
 
     AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
     JavaLayerConfigurations configuration =
         MavenLayerConfigurations.getForProject(mockMavenProject, extraFilesDirectory, appRoot);
-
-    ImmutableList<Path> expectedDependenciesFiles =
-        ImmutableList.of(outputPath.resolve("final-name/WEB-INF/lib/dependency-1.0.0.jar"));
-    ImmutableList<Path> expectedSnapshotDependenciesFiles =
-        ImmutableList.of(
-            outputPath.resolve("final-name/WEB-INF/lib/dependencyX-1.0.0-SNAPSHOT.jar"));
-    ImmutableList<Path> expectedResourcesFiles =
-        ImmutableList.of(
-            outputPath.resolve("final-name/META-INF"),
-            outputPath.resolve("final-name/META-INF/context.xml"),
-            outputPath.resolve("final-name/Test.jsp"),
-            outputPath.resolve("final-name/WEB-INF"),
-            outputPath.resolve("final-name/WEB-INF/classes"),
-            outputPath.resolve("final-name/WEB-INF/classes/empty_dir"),
-            outputPath.resolve("final-name/WEB-INF/classes/package"),
-            outputPath.resolve("final-name/WEB-INF/classes/package/test.properties"),
-            outputPath.resolve("final-name/WEB-INF/lib"),
-            outputPath.resolve("final-name/WEB-INF/web.xml"));
-    ImmutableList<Path> expectedClassesFiles =
-        ImmutableList.of(
-            outputPath.resolve("final-name/WEB-INF/classes/HelloWorld.class"),
-            outputPath.resolve("final-name/WEB-INF/classes/empty_dir"),
-            outputPath.resolve("final-name/WEB-INF/classes/package"),
-            outputPath.resolve("final-name/WEB-INF/classes/package/Other.class"));
-    ImmutableList<Path> expectedExtraFiles =
-        ImmutableList.of(
-            extraFilesDirectory.resolve("a"),
-            extraFilesDirectory.resolve("a/b"),
-            extraFilesDirectory.resolve("a/b/bar"),
-            extraFilesDirectory.resolve("c"),
-            extraFilesDirectory.resolve("c/cat"),
-            extraFilesDirectory.resolve("foo"));
-
-    assertSourcePathsUnordered(
-        expectedDependenciesFiles, configuration.getDependencyLayerEntries());
-    assertSourcePathsUnordered(
-        expectedSnapshotDependenciesFiles, configuration.getSnapshotDependencyLayerEntries());
-    assertSourcePathsUnordered(expectedResourcesFiles, configuration.getResourceLayerEntries());
-    assertSourcePathsUnordered(expectedClassesFiles, configuration.getClassLayerEntries());
-    assertSourcePathsUnordered(expectedExtraFiles, configuration.getExtraFilesLayerEntries());
 
     assertExtractionPathsUnordered(
-        Arrays.asList("/my/app/WEB-INF/lib/dependency-1.0.0.jar"),
+        Arrays.asList(
+            "/my/app/libs/dependency-1.0.0.jar",
+            "/my/app/libs/libraryA.jar",
+            "/my/app/libs/libraryB.jar"),
         configuration.getDependencyLayerEntries());
     assertExtractionPathsUnordered(
-        Arrays.asList("/my/app/WEB-INF/lib/dependencyX-1.0.0-SNAPSHOT.jar"),
+        Arrays.asList("/my/app/libs/dependencyX-1.0.0-SNAPSHOT.jar"),
         configuration.getSnapshotDependencyLayerEntries());
     assertExtractionPathsUnordered(
         Arrays.asList(
-            "/my/app/META-INF",
-            "/my/app/META-INF/context.xml",
-            "/my/app/Test.jsp",
-            "/my/app/WEB-INF",
-            "/my/app/WEB-INF/classes",
-            "/my/app/WEB-INF/classes/empty_dir",
-            "/my/app/WEB-INF/classes/package",
-            "/my/app/WEB-INF/classes/package/test.properties",
-            "/my/app/WEB-INF/lib",
-            "/my/app/WEB-INF/web.xml"),
+            "/my/app/resources/directory",
+            "/my/app/resources/directory/somefile",
+            "/my/app/resources/resourceA",
+            "/my/app/resources/resourceB",
+            "/my/app/resources/world"),
         configuration.getResourceLayerEntries());
     assertExtractionPathsUnordered(
         Arrays.asList(
-            "/my/app/WEB-INF/classes/HelloWorld.class",
-            "/my/app/WEB-INF/classes/empty_dir",
-            "/my/app/WEB-INF/classes/package",
-            "/my/app/WEB-INF/classes/package/Other.class"),
+            "/my/app/classes/HelloWorld.class",
+            "/my/app/classes/package",
+            "/my/app/classes/package/some.class",
+            "/my/app/classes/some.class"),
         configuration.getClassLayerEntries());
     assertExtractionPathsUnordered(
         Arrays.asList("/a", "/a/b", "/a/b/bar", "/c", "/c/cat", "/foo"),
         configuration.getExtraFilesLayerEntries());
   }
 
-  @Test
-  public void testGetForJarProject_nonDefaultAppRoot() throws IOException {
-    // Test when the default packaging is set
-    Mockito.when(mockMavenProject.getPackaging()).thenReturn("jar");
-
-    AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
-    JavaLayerConfigurations configuration =
-        MavenLayerConfigurations.getForProject(mockMavenProject, extraFilesDirectory, appRoot);
-
-    assertNonDefaultAppRoot(configuration);
-  }
-
-  @Test
-  public void testGetForWarProject_noErrorIfWebInfDoesNotExist() throws IOException {
-    temporaryFolder.newFolder("final-name");
-    Mockito.when(mockMavenProject.getPackaging()).thenReturn("war");
-    Mockito.when(mockBuild.getDirectory())
-        .thenReturn(temporaryFolder.getRoot().toPath().toString());
-    Mockito.when(mockBuild.getFinalName()).thenReturn("final-name");
-    AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
-
-    MavenLayerConfigurations.getForProject(
-        mockMavenProject, extraFilesDirectory, appRoot); // should pass
-  }
-
-  @Test
-  public void testGetForWarProject_noErrorIfWebInfLibDoesNotExist() throws IOException {
-    temporaryFolder.newFolder("final-name", "WEB-INF", "classes");
-    Mockito.when(mockMavenProject.getPackaging()).thenReturn("war");
-    Mockito.when(mockBuild.getDirectory())
-        .thenReturn(temporaryFolder.getRoot().toPath().toString());
-    Mockito.when(mockBuild.getFinalName()).thenReturn("final-name");
-    AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
-
-    MavenLayerConfigurations.getForProject(
-        mockMavenProject, extraFilesDirectory, appRoot); // should pass
-  }
-
-  @Test
-  public void testGetForWarProject_noErrorIfWebInfClassesDoesNotExist() throws IOException {
-    temporaryFolder.newFolder("final-name", "WEB-INF", "lib");
-    Mockito.when(mockMavenProject.getPackaging()).thenReturn("war");
-    Mockito.when(mockBuild.getDirectory())
-        .thenReturn(temporaryFolder.getRoot().toPath().toString());
-    Mockito.when(mockBuild.getFinalName()).thenReturn("final-name");
-    AbsoluteUnixPath appRoot = AbsoluteUnixPath.get("/my/app");
-
-    MavenLayerConfigurations.getForProject(
-        mockMavenProject, extraFilesDirectory, appRoot); // should pass
+  private Artifact makeArtifact(Path path) {
+    Artifact artifact = Mockito.mock(Artifact.class);
+    Mockito.when(artifact.getFile()).thenReturn(path.toFile());
+    return artifact;
   }
 }

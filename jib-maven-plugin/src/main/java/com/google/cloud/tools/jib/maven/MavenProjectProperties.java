@@ -16,6 +16,8 @@
 
 package com.google.cloud.tools.jib.maven;
 
+import com.google.cloud.tools.jib.event.DefaultEventDispatcher;
+import com.google.cloud.tools.jib.event.EventDispatcher;
 import com.google.cloud.tools.jib.event.EventHandlers;
 import com.google.cloud.tools.jib.event.JibEventType;
 import com.google.cloud.tools.jib.filesystem.AbsoluteUnixPath;
@@ -64,7 +66,7 @@ public class MavenProjectProperties implements ProjectProperties {
     try {
       return new MavenProjectProperties(
           project,
-          makeEventHandlers(log),
+          makeEventDispatcher(log),
           MavenLayerConfigurations.getForProject(project, extraDirectory, appRoot));
 
     } catch (IOException ex) {
@@ -76,23 +78,24 @@ public class MavenProjectProperties implements ProjectProperties {
     }
   }
 
-  private static EventHandlers makeEventHandlers(Log log) {
-    return new EventHandlers()
-        .add(JibEventType.LOGGING, new LogEventHandler(log))
-        .add(JibEventType.TIMING, new TimerEventHandler(log::debug));
+  private static EventDispatcher makeEventDispatcher(Log log) {
+    return new DefaultEventDispatcher(
+        new EventHandlers()
+            .add(JibEventType.LOGGING, new LogEventHandler(log))
+            .add(JibEventType.TIMING, new TimerEventHandler(log::debug)));
   }
 
   private final MavenProject project;
-  private final EventHandlers eventHandlers;
+  private final EventDispatcher eventDispatcher;
   private final JavaLayerConfigurations javaLayerConfigurations;
 
   @VisibleForTesting
   MavenProjectProperties(
       MavenProject project,
-      EventHandlers eventHandlers,
+      EventDispatcher eventDispatcher,
       JavaLayerConfigurations javaLayerConfigurations) {
     this.project = project;
-    this.eventHandlers = eventHandlers;
+    this.eventDispatcher = eventDispatcher;
     this.javaLayerConfigurations = javaLayerConfigurations;
   }
 
@@ -102,8 +105,8 @@ public class MavenProjectProperties implements ProjectProperties {
   }
 
   @Override
-  public EventHandlers getEventHandlers() {
-    return eventHandlers;
+  public EventDispatcher getEventDispatcher() {
+    return eventDispatcher;
   }
 
   @Override
@@ -149,7 +152,7 @@ public class MavenProjectProperties implements ProjectProperties {
 
   @Override
   public boolean isWarProject() {
-    return "war".equals(project.getPackaging());
+    return false; // TODO: to be implemented. For now, assume false.
   }
 
   /**

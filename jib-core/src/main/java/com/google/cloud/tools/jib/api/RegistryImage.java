@@ -17,8 +17,6 @@
 package com.google.cloud.tools.jib.api;
 // TODO: Move to com.google.cloud.tools.jib once that package is cleaned up.
 
-import com.google.cloud.tools.jib.builder.BuildSteps;
-import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.configuration.ImageConfiguration;
 import com.google.cloud.tools.jib.configuration.credentials.Credential;
 import com.google.cloud.tools.jib.configuration.credentials.CredentialRetriever;
@@ -66,7 +64,7 @@ public class RegistryImage implements SourceImage, TargetImage {
   }
 
   private final ImageReference imageReference;
-  private final List<CredentialRetriever> credentialRetrievers = new ArrayList<>();
+  private List<CredentialRetriever> credentialRetrievers = new ArrayList<>();
 
   /** Instantiate with {@link #named}. */
   private RegistryImage(ImageReference imageReference) {
@@ -117,15 +115,15 @@ public class RegistryImage implements SourceImage, TargetImage {
     return this;
   }
 
+  /**
+   * Converts into an {@link ImageConfiguration}. For internal use only.
+   *
+   * @return an {@link ImageConfiguration}
+   */
   @Override
   public ImageConfiguration toImageConfiguration() {
     return ImageConfiguration.builder(imageReference)
         .setCredentialRetrievers(credentialRetrievers)
         .build();
-  }
-
-  @Override
-  public BuildSteps toBuildSteps(BuildConfiguration buildConfiguration) {
-    return BuildSteps.forBuildToDockerRegistry(buildConfiguration);
   }
 }

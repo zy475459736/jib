@@ -18,7 +18,6 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.Blobs;
-import com.google.cloud.tools.jib.cache.CacheEntry;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.configuration.ContainerConfiguration;
 import com.google.cloud.tools.jib.event.EventDispatcher;
@@ -26,12 +25,14 @@ import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.Image;
 import com.google.cloud.tools.jib.image.Layer;
 import com.google.cloud.tools.jib.image.json.HistoryEntry;
+import com.google.cloud.tools.jib.ncache.CacheEntry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.security.DigestException;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import org.junit.Assert;
@@ -84,6 +85,11 @@ public class BuildImageStepTest {
           public Blob getLayerBlob() {
             return Blobs.from("ignored");
           }
+
+          @Override
+          public Optional<Blob> getMetadataBlob() {
+            return Optional.empty();
+          }
         };
 
     Mockito.when(mockBuildConfiguration.getEventDispatcher()).thenReturn(mockEventDispatcher);
@@ -95,7 +101,6 @@ public class BuildImageStepTest {
     Mockito.when(mockContainerConfiguration.getProgramArguments()).thenReturn(ImmutableList.of());
     Mockito.when(mockContainerConfiguration.getExposedPorts()).thenReturn(ImmutableList.of());
     Mockito.when(mockContainerConfiguration.getEntrypoint()).thenReturn(ImmutableList.of());
-    Mockito.when(mockContainerConfiguration.getUser()).thenReturn("root");
 
     nonEmptyLayerHistory =
         HistoryEntry.builder()
@@ -116,8 +121,6 @@ public class BuildImageStepTest {
             .addEnvironment(ImmutableMap.of("BASE_ENV", "BASE_ENV_VALUE"))
             .addLabel("base.label", "base.label.value")
             .setWorkingDirectory("/base/working/directory")
-            .setEntrypoint(ImmutableList.of("baseImageEntrypoint"))
-            .setProgramArguments(ImmutableList.of("catalina.sh", "run"))
             .addHistory(nonEmptyLayerHistory)
             .addHistory(emptyLayerHistory)
             .addHistory(emptyLayerHistory)
@@ -181,79 +184,10 @@ public class BuildImageStepTest {
         ImmutableMap.of("base.label", "base.label.value", "my.label", "my.label.value"),
         image.getLabels());
     Assert.assertEquals("/base/working/directory", image.getWorkingDirectory());
-    Assert.assertEquals("root", image.getUser());
 
     Assert.assertEquals(image.getHistory().get(0), nonEmptyLayerHistory);
     Assert.assertEquals(image.getHistory().get(1), emptyLayerHistory);
     Assert.assertEquals(image.getHistory().get(2), emptyLayerHistory);
-    Assert.assertEquals(ImmutableList.of(), image.getEntrypoint());
-    Assert.assertEquals(ImmutableList.of(), image.getProgramArguments());
-  }
-
-  @Test
-  public void test_inheritedEntrypoint() throws ExecutionException, InterruptedException {
-    Mockito.when(mockContainerConfiguration.getEntrypoint()).thenReturn(null);
-    Mockito.when(mockContainerConfiguration.getProgramArguments())
-        .thenReturn(ImmutableList.of("test"));
-
-    BuildImageStep buildImageStep =
-        new BuildImageStep(
-            MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor()),
-            mockBuildConfiguration,
-            mockPullBaseImageStep,
-            mockPullAndCacheBaseImageLayersStep,
-            ImmutableList.of(
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep));
-    Image<Layer> image = buildImageStep.getFuture().get().getFuture().get();
-
-    Assert.assertEquals(ImmutableList.of("baseImageEntrypoint"), image.getEntrypoint());
-    Assert.assertEquals(ImmutableList.of("test"), image.getProgramArguments());
-  }
-
-  @Test
-  public void test_inheritedEntrypointAndProgramArguments()
-      throws ExecutionException, InterruptedException {
-    Mockito.when(mockContainerConfiguration.getEntrypoint()).thenReturn(null);
-    Mockito.when(mockContainerConfiguration.getProgramArguments()).thenReturn(null);
-
-    BuildImageStep buildImageStep =
-        new BuildImageStep(
-            MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor()),
-            mockBuildConfiguration,
-            mockPullBaseImageStep,
-            mockPullAndCacheBaseImageLayersStep,
-            ImmutableList.of(
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep));
-    Image<Layer> image = buildImageStep.getFuture().get().getFuture().get();
-
-    Assert.assertEquals(ImmutableList.of("baseImageEntrypoint"), image.getEntrypoint());
-    Assert.assertEquals(ImmutableList.of("catalina.sh", "run"), image.getProgramArguments());
-  }
-
-  @Test
-  public void test_notInheritedProgramArguments() throws ExecutionException, InterruptedException {
-    Mockito.when(mockContainerConfiguration.getEntrypoint())
-        .thenReturn(ImmutableList.of("myEntrypoint"));
-    Mockito.when(mockContainerConfiguration.getProgramArguments()).thenReturn(null);
-
-    BuildImageStep buildImageStep =
-        new BuildImageStep(
-            MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor()),
-            mockBuildConfiguration,
-            mockPullBaseImageStep,
-            mockPullAndCacheBaseImageLayersStep,
-            ImmutableList.of(
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep,
-                mockBuildAndCacheApplicationLayerStep));
-    Image<Layer> image = buildImageStep.getFuture().get().getFuture().get();
-
-    Assert.assertEquals(ImmutableList.of("myEntrypoint"), image.getEntrypoint());
-    Assert.assertNull(image.getProgramArguments());
   }
 
   @Test
@@ -280,20 +214,20 @@ public class BuildImageStepTest {
         HistoryEntry.builder()
             .setCreationTimestamp(Instant.EPOCH)
             .setAuthor("Jib")
-            .setCreatedBy("jib:null")
+            .setCreatedBy("jib")
             .build();
 
     // Base layers (1 non-empty propagated, 2 empty propagated, 2 non-empty generated)
-    Assert.assertEquals(nonEmptyLayerHistory, image.getHistory().get(0));
-    Assert.assertEquals(emptyLayerHistory, image.getHistory().get(1));
-    Assert.assertEquals(emptyLayerHistory, image.getHistory().get(2));
-    Assert.assertEquals(expectedAddedBaseLayerHistory, image.getHistory().get(3));
-    Assert.assertEquals(expectedAddedBaseLayerHistory, image.getHistory().get(4));
+    Assert.assertEquals(image.getHistory().get(0), nonEmptyLayerHistory);
+    Assert.assertEquals(image.getHistory().get(1), emptyLayerHistory);
+    Assert.assertEquals(image.getHistory().get(2), emptyLayerHistory);
+    Assert.assertEquals(image.getHistory().get(3), expectedAddedBaseLayerHistory);
+    Assert.assertEquals(image.getHistory().get(4), expectedAddedBaseLayerHistory);
 
     // Application layers (3 generated)
-    Assert.assertEquals(expectedApplicationLayerHistory, image.getHistory().get(5));
-    Assert.assertEquals(expectedApplicationLayerHistory, image.getHistory().get(6));
-    Assert.assertEquals(expectedApplicationLayerHistory, image.getHistory().get(7));
+    Assert.assertEquals(image.getHistory().get(5), expectedApplicationLayerHistory);
+    Assert.assertEquals(image.getHistory().get(6), expectedApplicationLayerHistory);
+    Assert.assertEquals(image.getHistory().get(7), expectedApplicationLayerHistory);
 
     // Should be exactly 8 total
     Assert.assertEquals(8, image.getHistory().size());

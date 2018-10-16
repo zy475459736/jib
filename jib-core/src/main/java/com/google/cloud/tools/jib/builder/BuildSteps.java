@@ -18,9 +18,7 @@ package com.google.cloud.tools.jib.builder;
 
 import com.google.cloud.tools.jib.builder.steps.StepsRunner;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
-import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.event.events.LogEvent;
-import com.google.cloud.tools.jib.image.DescriptorDigest;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
@@ -31,18 +29,11 @@ public class BuildSteps {
   private static final String DESCRIPTION_FOR_DOCKER_DAEMON = "Building image to Docker daemon";
   private static final String DESCRIPTION_FOR_TARBALL = "Building image tarball";
 
-  /** Runs appropriate steps to build an image. */
+  /** Accepts {@link StepsRunner} by running the appropriate steps. */
   @FunctionalInterface
-  private interface ImageBuildRunnable {
+  private interface StepsRunnerConsumer {
 
-    /**
-     * Builds an image and returns its digest.
-     *
-     * @return the digest of the built image
-     * @throws ExecutionException if an exception occurs during execution
-     * @throws InterruptedException if the execution is interrupted
-     */
-    DescriptorDigest build() throws ExecutionException, InterruptedException;
+    void accept(StepsRunner stepsRunner) throws ExecutionException, InterruptedException;
   }
 
   /**
@@ -55,10 +46,10 @@ public class BuildSteps {
     return new BuildSteps(
         DESCRIPTION_FOR_DOCKER_REGISTRY,
         buildConfiguration,
-        () ->
-            new StepsRunner(buildConfiguration)
-                .runRetrieveTargetRegistryCredentialsStep()
-                .runAuthenticatePushStep()
+        stepsRunner ->//steps:
+            stepsRunner
+                .runRetrieveTargetRegistryCredentialsStep()//检索 目的Registry凭证
+                .runAuthenticatePushStep()//
                 .runPullBaseImageStep()
                 .runPullAndCacheBaseImageLayersStep()
                 .runPushBaseImageLayersStep()
@@ -74,23 +65,21 @@ public class BuildSteps {
   /**
    * All the steps to build to Docker daemon
    *
-   * @param dockerClient the {@link DockerClient} for running {@code docker} commands
    * @param buildConfiguration the configuration parameters for the build
    * @return a new {@link BuildSteps} for building to a Docker daemon
    */
-  public static BuildSteps forBuildToDockerDaemon(
-      DockerClient dockerClient, BuildConfiguration buildConfiguration) {
+  public static BuildSteps forBuildToDockerDaemon(BuildConfiguration buildConfiguration) {
     return new BuildSteps(
         DESCRIPTION_FOR_DOCKER_DAEMON,
         buildConfiguration,
-        () ->
-            new StepsRunner(buildConfiguration)
+        stepsRunner ->
+            stepsRunner
                 .runPullBaseImageStep()
                 .runPullAndCacheBaseImageLayersStep()
                 .runBuildAndCacheApplicationLayerSteps()
                 .runBuildImageStep()
                 .runFinalizingBuildStep()
-                .runLoadDockerStep(dockerClient)
+                .runLoadDockerStep()
                 .waitOnLoadDockerStep());
   }
 
@@ -105,8 +94,8 @@ public class BuildSteps {
     return new BuildSteps(
         DESCRIPTION_FOR_TARBALL,
         buildConfiguration,
-        () ->
-            new StepsRunner(buildConfiguration)
+        stepsRunner ->
+            stepsRunner
                 .runPullBaseImageStep()
                 .runPullAndCacheBaseImageLayersStep()
                 .runBuildAndCacheApplicationLayerSteps()
@@ -118,56 +107,42 @@ public class BuildSteps {
 
   private final String description;
   private final BuildConfiguration buildConfiguration;
-  private final ImageBuildRunnable imageBuildRunnable;
+  private final StepsRunnerConsumer stepsRunnerConsumer;
 
   /**
    * @param description a description of what the steps do
    * @param buildConfiguration the configuration parameters for the build
-   * @param imageBuildRunnable runs the necessary steps to build an image
+   * @param stepsRunnerConsumer accepts a {@link StepsRunner} by running the necessary steps
    */
   private BuildSteps(
       String description,
       BuildConfiguration buildConfiguration,
-      ImageBuildRunnable imageBuildRunnable) {
+      StepsRunnerConsumer stepsRunnerConsumer) {
     this.description = description;
     this.buildConfiguration = buildConfiguration;
-    this.imageBuildRunnable = imageBuildRunnable;
+    this.stepsRunnerConsumer = stepsRunnerConsumer;
   }
 
   public BuildConfiguration getBuildConfiguration() {
     return buildConfiguration;
   }
 
-  /**
-   * Executes the build.
-   *
-   * @return the built image digest
-   * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException if an exception occurs during execution
-   */
-  public DescriptorDigest run() throws InterruptedException, ExecutionException {
+  public void run() throws InterruptedException, ExecutionException {
     buildConfiguration.getEventDispatcher().dispatch(LogEvent.lifecycle(""));
 
-    DescriptorDigest imageDigest;
     try (TimerEventDispatcher ignored =
         new TimerEventDispatcher(buildConfiguration.getEventDispatcher(), description)) {
-      imageDigest = imageBuildRunnable.build();
+      stepsRunnerConsumer.accept(new StepsRunner(buildConfiguration));
     }
 
     if (buildConfiguration.getContainerConfiguration() != null) {
       buildConfiguration.getEventDispatcher().dispatch(LogEvent.lifecycle(""));
-      // TODO refactor code to also log ENTRYPOINT and CMD when inheriting them in this code,
-      // instead of logging them elsewhere.
-      if (buildConfiguration.getContainerConfiguration().getEntrypoint() != null) {
-        buildConfiguration
-            .getEventDispatcher()
-            .dispatch(
-                LogEvent.lifecycle(
-                    "Container entrypoint set to "
-                        + buildConfiguration.getContainerConfiguration().getEntrypoint()));
-      }
+      buildConfiguration
+          .getEventDispatcher()
+          .dispatch(
+              LogEvent.lifecycle(
+                  "Container entrypoint set to "
+                      + buildConfiguration.getContainerConfiguration().getEntrypoint()));
     }
-
-    return imageDigest;
   }
 }

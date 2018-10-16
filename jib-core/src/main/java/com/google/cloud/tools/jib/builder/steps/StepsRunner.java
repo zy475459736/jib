@@ -18,9 +18,7 @@ package com.google.cloud.tools.jib.builder.steps;
 
 import com.google.cloud.tools.jib.async.AsyncSteps;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
-import com.google.cloud.tools.jib.docker.DockerClient;
 import com.google.cloud.tools.jib.global.JibSystemProperties;
-import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -30,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
 
 /**
@@ -65,7 +64,7 @@ public class StepsRunner {
     ExecutorService executorService =
         JibSystemProperties.isSerializedExecutionEnabled()
             ? MoreExecutors.newDirectExecutorService()
-            : buildConfiguration.getExecutorService();
+            : Executors.newCachedThreadPool();
     listeningExecutorService = MoreExecutors.listeningDecorator(executorService);
   }
 
@@ -179,11 +178,10 @@ public class StepsRunner {
     return this;
   }
 
-  public StepsRunner runLoadDockerStep(DockerClient dockerClient) {
+  public StepsRunner runLoadDockerStep() {
     loadDockerStep =
         new LoadDockerStep(
             listeningExecutorService,
-            dockerClient,
             buildConfiguration,
             Preconditions.checkNotNull(pullAndCacheBaseImageLayersStep),
             Preconditions.checkNotNull(buildAndCacheApplicationLayerSteps),
@@ -203,15 +201,15 @@ public class StepsRunner {
     return this;
   }
 
-  public DescriptorDigest waitOnPushImageStep() throws ExecutionException, InterruptedException {
-    return Preconditions.checkNotNull(pushImageStep).getFuture().get();
+  public void waitOnPushImageStep() throws ExecutionException, InterruptedException {
+    Preconditions.checkNotNull(pushImageStep).getFuture().get();
   }
 
-  public DescriptorDigest waitOnLoadDockerStep() throws ExecutionException, InterruptedException {
-    return Preconditions.checkNotNull(loadDockerStep).getFuture().get();
+  public void waitOnLoadDockerStep() throws ExecutionException, InterruptedException {
+    Preconditions.checkNotNull(loadDockerStep).getFuture().get();
   }
 
-  public DescriptorDigest waitOnWriteTarFileStep() throws ExecutionException, InterruptedException {
-    return Preconditions.checkNotNull(writeTarFileStep).getFuture().get();
+  public void waitOnWriteTarFileStep() throws ExecutionException, InterruptedException {
+    Preconditions.checkNotNull(writeTarFileStep).getFuture().get();
   }
 }

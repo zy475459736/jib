@@ -84,6 +84,7 @@ public class JavaDockerContextGeneratorTest {
         Paths.get(Resources.getResource("application/snapshot-dependencies").toURI());
     Path testResources = Paths.get(Resources.getResource("application/resources").toURI());
     Path testClasses = Paths.get(Resources.getResource("application/classes").toURI());
+    Path testExplodedWarFiles = Paths.get(Resources.getResource("exploded-war").toURI());
     Path testExtraFiles = Paths.get(Resources.getResource("layer").toURI());
 
     Path targetDirectory = temporaryFolder.newFolder().toPath();
@@ -102,6 +103,8 @@ public class JavaDockerContextGeneratorTest {
         .thenReturn(filesToLayerEntries(testResources, "/more/resources"));
     Mockito.when(mockJavaLayerConfigurations.getClassLayerEntries())
         .thenReturn(filesToLayerEntries(testClasses, "/my/classes"));
+    Mockito.when(mockJavaLayerConfigurations.getExplodedWarEntries())
+        .thenReturn(filesToLayerEntries(testExplodedWarFiles, "/exploded/war"));
     Mockito.when(mockJavaLayerConfigurations.getExtraFilesLayerEntries())
         .thenReturn(filesToLayerEntries(testExtraFiles, "/"));
 
@@ -114,6 +117,7 @@ public class JavaDockerContextGeneratorTest {
     assertSameFiles(targetDirectory.resolve("snapshot-libs/snapshots"), testSnapshotDependencies);
     assertSameFiles(targetDirectory.resolve("resources/more/resources"), testResources);
     assertSameFiles(targetDirectory.resolve("classes/my/classes"), testClasses);
+    assertSameFiles(targetDirectory.resolve("exploded-war/exploded/war"), testExplodedWarFiles);
     assertSameFiles(targetDirectory.resolve("root"), testExtraFiles);
   }
 
@@ -122,7 +126,7 @@ public class JavaDockerContextGeneratorTest {
     String expectedBaseImage = "somebaseimage";
     List<String> expectedJvmFlags = Arrays.asList("-flag", "another\"Flag");
     String expectedMainClass = "SomeMainClass";
-    List<String> expectedProgramArguments = Arrays.asList("arg1", "arg2");
+    List<String> expectedJavaArguments = Arrays.asList("arg1", "arg2");
     Map<String, String> expectedEnv = ImmutableMap.of("key1", "value1", "key2", "value2");
     List<String> exposedPorts = Arrays.asList("1000/tcp", "2000-2010/udp");
     Map<String, String> expectedLabels =
@@ -145,6 +149,9 @@ public class JavaDockerContextGeneratorTest {
     Mockito.when(mockJavaLayerConfigurations.getClassLayerEntries())
         .thenReturn(
             ImmutableList.of(new LayerEntry(ignored, AbsoluteUnixPath.get("/my/classes/"))));
+    Mockito.when(mockJavaLayerConfigurations.getExplodedWarEntries())
+        .thenReturn(
+            ImmutableList.of(new LayerEntry(ignored, AbsoluteUnixPath.get("/exploded/war"))));
     Mockito.when(mockJavaLayerConfigurations.getExtraFilesLayerEntries())
         .thenReturn(ImmutableList.of(new LayerEntry(ignored, AbsoluteUnixPath.get("/"))));
 
@@ -154,7 +161,7 @@ public class JavaDockerContextGeneratorTest {
             .setEntrypoint(
                 JavaEntrypointConstructor.makeDefaultEntrypoint(
                     AbsoluteUnixPath.get("/app"), expectedJvmFlags, expectedMainClass))
-            .setProgramArguments(expectedProgramArguments)
+            .setJavaArguments(expectedJavaArguments)
             .setEnvironment(expectedEnv)
             .setExposedPorts(exposedPorts)
             .setLabels(expectedLabels)
@@ -163,41 +170,6 @@ public class JavaDockerContextGeneratorTest {
     // Need to split/rejoin the string here to avoid cross-platform troubles
     List<String> sampleDockerfile =
         Resources.readLines(Resources.getResource("sampleDockerfile"), StandardCharsets.UTF_8);
-    Assert.assertEquals(String.join("\n", sampleDockerfile), dockerfile);
-  }
-
-  @Test
-  public void testMakeDockerfileWithWebApp() throws IOException {
-    String expectedBaseImage = "tomcat:8.5-jre8-alpine";
-    AbsoluteUnixPath exepectedAppRoot = AbsoluteUnixPath.get("/usr/local/tomcat/webapps/ROOT/");
-
-    Mockito.when(mockJavaLayerConfigurations.getDependencyLayerEntries())
-        .thenReturn(
-            ImmutableList.of(
-                new LayerEntry(Paths.get("ignored"), exepectedAppRoot.resolve("WEB-INF/lib"))));
-    Mockito.when(mockJavaLayerConfigurations.getSnapshotDependencyLayerEntries())
-        .thenReturn(
-            ImmutableList.of(
-                new LayerEntry(Paths.get("ignored"), exepectedAppRoot.resolve("WEB-INF/lib"))));
-    Mockito.when(mockJavaLayerConfigurations.getResourceLayerEntries())
-        .thenReturn(ImmutableList.of(new LayerEntry(Paths.get("ignored"), exepectedAppRoot)));
-    Mockito.when(mockJavaLayerConfigurations.getClassLayerEntries())
-        .thenReturn(
-            ImmutableList.of(
-                new LayerEntry(Paths.get("ignored"), exepectedAppRoot.resolve("WEB-INF/classes"))));
-    Mockito.when(mockJavaLayerConfigurations.getExtraFilesLayerEntries())
-        .thenReturn(
-            ImmutableList.of(new LayerEntry(Paths.get("ignored"), AbsoluteUnixPath.get("/"))));
-    String dockerfile =
-        new JavaDockerContextGenerator(mockJavaLayerConfigurations)
-            .setBaseImage(expectedBaseImage)
-            .setEntrypoint(ImmutableList.of("catalina.sh", "run"))
-            .makeDockerfile();
-
-    // Need to split/rejoin the string here to avoid cross-platform troubles
-    List<String> sampleDockerfile =
-        Resources.readLines(
-            Resources.getResource("webAppSampleDockerfile"), StandardCharsets.UTF_8);
     Assert.assertEquals(String.join("\n", sampleDockerfile), dockerfile);
   }
 }

@@ -68,7 +68,7 @@ public class RegistryAuthenticator {
       this.allowInsecureRegistries = allowInsecureRegistries;
       return this;
     }
-
+    //todo Registry Authenticator
     /**
      * Gets a {@link RegistryAuthenticator} for a custom registry server and repository.
      *
@@ -262,13 +262,13 @@ public class RegistryAuthenticator {
    *     href="https://docs.docker.com/registry/spec/auth/token/#how-to-authenticate">https://docs.docker.com/registry/spec/auth/token/#how-to-authenticate</a>
    */
   private Authorization authenticate(String scope) throws RegistryAuthenticationFailedException {
-    try {
+    try {//todo pay attention
       URL authenticationUrl = getAuthenticationUrl(scope);
 
       try (Connection connection = Connection.getConnectionFactory().apply(authenticationUrl)) {
         Request.Builder requestBuilder =
             Request.builder().setHttpTimeout(JibSystemProperties.getHttpTimeout());
-        if (authorization != null) {
+        if (authorization != null) {//todo
           requestBuilder.setAuthorization(authorization);
         }
         Response response = connection.get(requestBuilder.build());

@@ -16,7 +16,6 @@
 
 package com.google.cloud.tools.jib.registry;
 
-import com.google.cloud.tools.jib.ProjectInfo;
 import com.google.cloud.tools.jib.blob.Blob;
 import com.google.cloud.tools.jib.blob.BlobDescriptor;
 import com.google.cloud.tools.jib.blob.Blobs;
@@ -31,7 +30,6 @@ import com.google.cloud.tools.jib.image.json.V21ManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
 import java.io.IOException;
 import java.net.URL;
 import javax.annotation.Nullable;
@@ -117,9 +115,12 @@ public class RegistryClient {
         return "";
       }
 
+      String version = RegistryClient.class.getPackage().getImplementationVersion();
       StringBuilder userAgentBuilder = new StringBuilder();
       userAgentBuilder.append("jib");
-      userAgentBuilder.append(" ").append(ProjectInfo.VERSION);
+      if (version != null) {
+        userAgentBuilder.append(" ").append(version);
+      }
       if (userAgentSuffix != null) {
         userAgentBuilder.append(" ").append(userAgentSuffix);
       }
@@ -213,16 +214,13 @@ public class RegistryClient {
    *
    * @param manifestTemplate the image manifest
    * @param imageTag the tag to push on
-   * @return the digest of the pushed image
    * @throws IOException if communicating with the endpoint fails
    * @throws RegistryException if communicating with the endpoint fails
    */
-  public DescriptorDigest pushManifest(BuildableManifestTemplate manifestTemplate, String imageTag)
+  public void pushManifest(BuildableManifestTemplate manifestTemplate, String imageTag)
       throws IOException, RegistryException {
-    return Verify.verifyNotNull(
-        callRegistryEndpoint(
-            new ManifestPusher(
-                registryEndpointRequestProperties, manifestTemplate, imageTag, eventDispatcher)));
+    callRegistryEndpoint(
+        new ManifestPusher(registryEndpointRequestProperties, manifestTemplate, imageTag));
   }
 
   /**

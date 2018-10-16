@@ -41,8 +41,7 @@ import javax.annotation.Nullable;
  *     "Cmd": ["arg1", "arg2"],
  *     "ExposedPorts": { "6000/tcp":{}, "8000/tcp":{}, "9000/tcp":{} },
  *     "Labels": { "com.example.label": "value" },
- *     "WorkingDir": "/home/user/workspace",
- *     "User": "me"
+ *     "WorkingDir": "/home/user/workspace"
  *   },
  *   "history": [
  *     {
@@ -111,9 +110,6 @@ public class ContainerConfigurationTemplate implements JsonTemplate {
 
     /** Working directory. */
     @Nullable private String WorkingDir;
-
-    /** User. */
-    @Nullable private String User;
   }
 
   /**
@@ -158,10 +154,6 @@ public class ContainerConfigurationTemplate implements JsonTemplate {
 
   public void setContainerWorkingDir(@Nullable String workingDirectory) {
     config.WorkingDir = workingDirectory;
-  }
-
-  public void setContainerUser(@Nullable String user) {
-    config.User = user;
   }
 
   public void addLayerDiffId(DescriptorDigest diffId) {
@@ -213,11 +205,6 @@ public class ContainerConfigurationTemplate implements JsonTemplate {
   @Nullable
   String getContainerWorkingDir() {
     return config.WorkingDir;
-  }
-
-  @Nullable
-  String getContainerUser() {
-    return config.User;
   }
 
   @VisibleForTesting

@@ -21,24 +21,20 @@ import com.google.cloud.tools.jib.async.NonBlockingSteps;
 import com.google.cloud.tools.jib.builder.TimerEventDispatcher;
 import com.google.cloud.tools.jib.configuration.BuildConfiguration;
 import com.google.cloud.tools.jib.event.events.LogEvent;
-import com.google.cloud.tools.jib.image.DescriptorDigest;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.ImageToJsonTranslator;
-import com.google.cloud.tools.jib.json.JsonTemplateMapper;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-/** Pushes the final image. Outputs the pushed image digest. */
-class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorDigest> {
+/** Pushes the final image. */
+class PushImageStep implements AsyncStep<Void>, Callable<Void> {
 
   private static final String DESCRIPTION = "Pushing new image";
 
@@ -51,7 +47,7 @@ class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorD
   private final BuildImageStep buildImageStep;
 
   private final ListeningExecutorService listeningExecutorService;
-  private final ListenableFuture<DescriptorDigest> listenableFuture;
+  private final ListenableFuture<Void> listenableFuture;
 
   PushImageStep(
       ListeningExecutorService listeningExecutorService,
@@ -79,14 +75,14 @@ class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorD
   }
 
   @Override
-  public ListenableFuture<DescriptorDigest> getFuture() {
+  public ListenableFuture<Void> getFuture() {
     return listenableFuture;
   }
 
   @Override
-  public DescriptorDigest call() throws ExecutionException, InterruptedException {
+  public Void call() throws ExecutionException, InterruptedException {
     ImmutableList.Builder<ListenableFuture<?>> dependenciesBuilder = ImmutableList.builder();
-    dependenciesBuilder.add(authenticatePushStep.getFuture());
+    dependenciesBuilder.add(authenticatePushStep.getFuture());//
     for (AsyncStep<PushBlobStep> pushBlobStepStep : NonBlockingSteps.get(pushBaseImageLayersStep)) {
       dependenciesBuilder.add(pushBlobStepStep.getFuture());
     }
@@ -103,8 +99,7 @@ class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorD
         .get();
   }
 
-  private ListenableFuture<ListenableFuture<DescriptorDigest>> afterPushSteps()
-      throws ExecutionException {
+  private ListenableFuture<ListenableFuture<Void>> afterPushSteps() throws ExecutionException {
     List<ListenableFuture<?>> dependencies = new ArrayList<>();
     for (AsyncStep<PushBlobStep> pushBlobStepStep : NonBlockingSteps.get(pushBaseImageLayersStep)) {
       dependencies.add(NonBlockingSteps.get(pushBlobStepStep).getFuture());
@@ -119,8 +114,7 @@ class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorD
         .call(this::afterAllPushed, listeningExecutorService);
   }
 
-  private ListenableFuture<DescriptorDigest> afterAllPushed()
-      throws ExecutionException, IOException {
+  private ListenableFuture<Void> afterAllPushed() throws ExecutionException {
     try (TimerEventDispatcher ignored =
         new TimerEventDispatcher(buildConfiguration.getEventDispatcher(), DESCRIPTION)) {
       RegistryClient registryClient =
@@ -153,13 +147,7 @@ class PushImageStep implements AsyncStep<DescriptorDigest>, Callable<DescriptorD
                   return null;
                 }));
       }
-
-      DescriptorDigest imageDigest =
-          JsonTemplateMapper.toBlob(manifestTemplate)
-              .writeTo(ByteStreams.nullOutputStream())
-              .getDigest();
-      return Futures.whenAllSucceed(pushAllTagsFutures)
-          .call(() -> imageDigest, listeningExecutorService);
+      return Futures.whenAllSucceed(pushAllTagsFutures).call(() -> null, listeningExecutorService);
     }
   }
 }

@@ -20,13 +20,9 @@ import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.OCIManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
 
-/** Enumeration of {@link BuildableManifestTemplate}s that indicates the format of the image. */
+/** Enumeration of {@link BuildableManifestTemplate}s. */
 public enum ImageFormat {
-
-  /** @see <a href="https://docs.docker.com/registry/spec/manifest-v2-2/">Docker V2.2</a> */
   Docker(V22ManifestTemplate.class),
-
-  /** @see <a href="https://github.com/opencontainers/image-spec/blob/master/manifest.md">OCI</a> */
   OCI(OCIManifestTemplate.class);
 
   private final Class<? extends BuildableManifestTemplate> manifestTemplateClass;

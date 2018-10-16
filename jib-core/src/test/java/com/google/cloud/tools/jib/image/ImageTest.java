@@ -51,9 +51,8 @@ public class ImageTest {
             .addEnvironmentVariable("crepecake", "is great")
             .addEnvironmentVariable("VARIABLE", "VALUE")
             .setEntrypoint(Arrays.asList("some", "command"))
-            .setProgramArguments(Arrays.asList("arg1", "arg2"))
+            .setJavaArguments(Arrays.asList("arg1", "arg2"))
             .setExposedPorts(ImmutableList.of(Port.tcp(1000), Port.tcp(2000)))
-            .setUser("john")
             .addLayer(mockLayer)
             .build();
 
@@ -63,8 +62,7 @@ public class ImageTest {
     Assert.assertEquals(
         ImmutableMap.of("crepecake", "is great", "VARIABLE", "VALUE"), image.getEnvironment());
     Assert.assertEquals(Arrays.asList("some", "command"), image.getEntrypoint());
-    Assert.assertEquals(Arrays.asList("arg1", "arg2"), image.getProgramArguments());
+    Assert.assertEquals(Arrays.asList("arg1", "arg2"), image.getJavaArguments());
     Assert.assertEquals(ImmutableList.of(Port.tcp(1000), Port.tcp(2000)), image.getExposedPorts());
-    Assert.assertEquals("john", image.getUser());
   }
 }

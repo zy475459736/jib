@@ -53,7 +53,7 @@ class RegistryEndpointCaller<T> {
    */
   @VisibleForTesting static final int STATUS_CODE_PERMANENT_REDIRECT = 308;
 
-  private static final String DEFAULT_PROTOCOL = "https";
+  private static final String DEFAULT_PROTOCOL = "https";//todo
 
   private static boolean isHttpsProtocol(URL url) {
     return "https".equals(url.getProtocol());
@@ -217,7 +217,7 @@ class RegistryEndpointCaller<T> {
     // Only sends authorization if using HTTPS or explicitly forcing over HTTP.
     boolean sendCredentials =
         isHttpsProtocol(url) || JibSystemProperties.isSendCredentialsOverHttpEnabled();
-
+    //todo RegistryEndpointCaller
     try (Connection connection = connectionFactory.apply(url)) {
       Request.Builder requestBuilder =
           Request.builder()

@@ -16,24 +16,19 @@
 
 package com.google.cloud.tools.jib.configuration;
 
-import com.google.cloud.tools.jib.cache.Cache;
 import com.google.cloud.tools.jib.event.EventDispatcher;
 import com.google.cloud.tools.jib.event.events.LogEvent;
 import com.google.cloud.tools.jib.image.json.BuildableManifestTemplate;
 import com.google.cloud.tools.jib.image.json.V22ManifestTemplate;
+import com.google.cloud.tools.jib.ncache.Cache;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.StringJoiner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
 
 /** Immutable configuration options for the builder process. */
@@ -54,8 +49,8 @@ public class BuildConfiguration {
     @Nullable private ImageConfiguration targetImageConfiguration;
     private ImmutableSet<String> additionalTargetImageTags = ImmutableSet.of();
     @Nullable private ContainerConfiguration containerConfiguration;
-    @Nullable private Path applicationLayersCacheDirectory;
-    @Nullable private Path baseImageLayersCacheDirectory;
+    @Nullable private CacheConfiguration applicationLayersCacheConfiguration;
+    @Nullable private CacheConfiguration baseImageLayersCacheConfiguration;
     private boolean allowInsecureRegistries = false;
     private ImmutableList<LayerConfiguration> layerConfigurations = ImmutableList.of();
     private Class<? extends BuildableManifestTemplate> targetFormat = DEFAULT_TARGET_FORMAT;
@@ -64,7 +59,6 @@ public class BuildConfiguration {
         jibEvent -> {
           /* No-op EventDispatcher. */
         };
-    @Nullable private ExecutorService executorService;
 
     private Builder() {}
 
@@ -116,22 +110,24 @@ public class BuildConfiguration {
     /**
      * Sets the location of the cache for storing application layers.
      *
-     * @param applicationLayersCacheDirectory the application layers cache directory
+     * @param applicationLayersCacheConfiguration the application layers {@link CacheConfiguration}
      * @return this
      */
-    public Builder setApplicationLayersCacheDirectory(Path applicationLayersCacheDirectory) {
-      this.applicationLayersCacheDirectory = applicationLayersCacheDirectory;
+    public Builder setApplicationLayersCacheConfiguration(
+        @Nullable CacheConfiguration applicationLayersCacheConfiguration) {
+      this.applicationLayersCacheConfiguration = applicationLayersCacheConfiguration;
       return this;
     }
 
     /**
      * Sets the location of the cache for storing base image layers.
      *
-     * @param baseImageLayersCacheDirectory the base image layers cache directory
+     * @param baseImageLayersCacheConfiguration the base image layers {@link CacheConfiguration}
      * @return this
      */
-    public Builder setBaseImageLayersCacheDirectory(Path baseImageLayersCacheDirectory) {
-      this.baseImageLayersCacheDirectory = baseImageLayersCacheDirectory;
+    public Builder setBaseImageLayersCacheConfiguration(
+        @Nullable CacheConfiguration baseImageLayersCacheConfiguration) {
+      this.baseImageLayersCacheConfiguration = baseImageLayersCacheConfiguration;
       return this;
     }
 
@@ -191,42 +187,28 @@ public class BuildConfiguration {
     }
 
     /**
-     * Sets the {@link ExecutorService} Jib executes on. By default, Jib uses {@link
-     * Executors#newCachedThreadPool}.
-     *
-     * @param executorService the {@link ExecutorService}
-     * @return this
-     */
-    public Builder setExecutorService(ExecutorService executorService) {
-      this.executorService = executorService;
-      return this;
-    }
-
-    /**
      * Builds a new {@link BuildConfiguration} using the parameters passed into the builder.
      *
      * @return the corresponding build configuration
      * @throws IOException if an I/O exception occurs
+     * @throws CacheDirectoryCreationException if failed to create the configured cache directories
      */
-    public BuildConfiguration build() throws IOException {
+    public BuildConfiguration build() throws IOException, CacheDirectoryCreationException {
       // Validates the parameters.
-      List<String> missingFields = new ArrayList<>();
+      List<String> errorMessages = new ArrayList<>();
       if (baseImageConfiguration == null) {
-        missingFields.add("base image configuration");
+        errorMessages.add("base image configuration is required but not set");
       }
       if (targetImageConfiguration == null) {
-        missingFields.add("target image configuration");
-      }
-      if (baseImageLayersCacheDirectory == null) {
-        missingFields.add("base image layers cache directory");
-      }
-      if (applicationLayersCacheDirectory == null) {
-        missingFields.add("application layers cache directory");
+        errorMessages.add("target image configuration is required but not set");
       }
 
-      switch (missingFields.size()) {
+      switch (errorMessages.size()) {
         case 0: // No errors
-          if (Preconditions.checkNotNull(baseImageConfiguration).getImage().usesDefaultTag()) {
+          if (baseImageConfiguration == null || targetImageConfiguration == null) {
+            throw new IllegalStateException("Required fields should not be null");
+          }
+          if (baseImageConfiguration.getImage().usesDefaultTag()) {
             eventDispatcher.dispatch(
                 LogEvent.warn(
                     "Base image '"
@@ -234,51 +216,49 @@ public class BuildConfiguration {
                         + "' does not use a specific image digest - build may not be reproducible"));
           }
 
-          if (executorService == null) {
-            executorService = Executors.newCachedThreadPool();
+          if (baseImageLayersCacheConfiguration == null) {
+            baseImageLayersCacheConfiguration =
+                CacheConfiguration.forDefaultUserLevelCacheDirectory();
+          }
+          if (applicationLayersCacheConfiguration == null) {
+            applicationLayersCacheConfiguration = CacheConfiguration.makeTemporary();
           }
 
           return new BuildConfiguration(
               baseImageConfiguration,
-              Preconditions.checkNotNull(targetImageConfiguration),
+              targetImageConfiguration,
               additionalTargetImageTags,
               containerConfiguration,
-              Cache.withDirectory(Preconditions.checkNotNull(baseImageLayersCacheDirectory)),
-              Cache.withDirectory(Preconditions.checkNotNull(applicationLayersCacheDirectory)),
+              Cache.withDirectory(baseImageLayersCacheConfiguration.getCacheDirectory()),
+              Cache.withDirectory(applicationLayersCacheConfiguration.getCacheDirectory()),
               targetFormat,
               allowInsecureRegistries,
               layerConfigurations,
               toolName,
-              eventDispatcher,
-              executorService);
+              eventDispatcher);
 
         case 1:
-          throw new IllegalStateException(missingFields.get(0) + " is required but not set");
+          throw new IllegalStateException(errorMessages.get(0));
 
         case 2:
-          throw new IllegalStateException(
-              missingFields.get(0) + " and " + missingFields.get(1) + " are required but not set");
+          throw new IllegalStateException(errorMessages.get(0) + " and " + errorMessages.get(1));
 
         default:
-          missingFields.add("and " + missingFields.remove(missingFields.size() - 1));
-          StringJoiner errorMessage = new StringJoiner(", ", "", " are required but not set");
-          for (String missingField : missingFields) {
-            errorMessage.add(missingField);
-          }
-          throw new IllegalStateException(errorMessage.toString());
+          // Should never reach here.
+          throw new IllegalStateException();
       }
     }
 
     @Nullable
     @VisibleForTesting
-    Path getBaseImageLayersCacheDirectory() {
-      return baseImageLayersCacheDirectory;
+    CacheConfiguration getBaseImageLayersCacheConfiguration() {
+      return baseImageLayersCacheConfiguration;
     }
 
     @Nullable
     @VisibleForTesting
-    Path getApplicationLayersCacheDirectory() {
-      return applicationLayersCacheDirectory;
+    CacheConfiguration getApplicationLayersCacheConfiguration() {
+      return applicationLayersCacheConfiguration;
     }
   }
 
@@ -302,7 +282,6 @@ public class BuildConfiguration {
   private final ImmutableList<LayerConfiguration> layerConfigurations;
   private final String toolName;
   private final EventDispatcher eventDispatcher;
-  private final ExecutorService executorService;
 
   /** Instantiate with {@link #builder}. */
   private BuildConfiguration(
@@ -316,8 +295,7 @@ public class BuildConfiguration {
       boolean allowInsecureRegistries,
       ImmutableList<LayerConfiguration> layerConfigurations,
       String toolName,
-      EventDispatcher eventDispatcher,
-      ExecutorService executorService) {
+      EventDispatcher eventDispatcher) {
     this.baseImageConfiguration = baseImageConfiguration;
     this.targetImageConfiguration = targetImageConfiguration;
     this.additionalTargetImageTags = additionalTargetImageTags;
@@ -329,7 +307,6 @@ public class BuildConfiguration {
     this.layerConfigurations = layerConfigurations;
     this.toolName = toolName;
     this.eventDispatcher = eventDispatcher;
-    this.executorService = executorService;
   }
 
   public ImageConfiguration getBaseImageConfiguration() {
@@ -363,10 +340,6 @@ public class BuildConfiguration {
 
   public EventDispatcher getEventDispatcher() {
     return eventDispatcher;
-  }
-
-  public ExecutorService getExecutorService() {
-    return executorService;
   }
 
   /**
